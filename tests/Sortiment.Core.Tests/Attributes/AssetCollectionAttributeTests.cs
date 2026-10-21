@@ -20,9 +20,9 @@ public sealed class AssetCollectionAttributeTests
         var attribute = AttributeDefinition.CreateAssetCollection(Images, family, isLocalizable: true).Value;
 
         attribute.Type.ShouldBe(AttributeType.AssetCollection);
-        attribute.AssetFamilyId.ShouldBe(family.Id);
+        attribute.SettingsAs<AssetCollectionSettings>().AssetFamilyId.ShouldBe(family.Id);
         attribute.IsLocalizable.ShouldBeTrue();
-        attribute.MaxCount.ShouldBeNull();
+        attribute.SettingsAs<AssetCollectionSettings>().MaxCount.ShouldBeNull();
     }
 
     [Fact]
@@ -32,34 +32,21 @@ public sealed class AssetCollectionAttributeTests
     }
 
     [Fact]
-    public void OtherAttributeTypesHaveNoAssetFamily()
-    {
-        AttributeDefinition.Create(Images, AttributeType.Text).Value.AssetFamilyId.ShouldBeNull();
-    }
-
-    [Fact]
     public void MaxCountCanBeSetAndRemoved()
     {
         var attribute = Create();
 
-        attribute.SetMaxCount(1).IsSuccess.ShouldBeTrue();
-        attribute.MaxCount.ShouldBe(1);
+        attribute.SettingsAs<AssetCollectionSettings>().SetMaxCount(1).IsSuccess.ShouldBeTrue();
+        attribute.SettingsAs<AssetCollectionSettings>().MaxCount.ShouldBe(1);
 
-        attribute.SetMaxCount(null).IsSuccess.ShouldBeTrue();
-        attribute.MaxCount.ShouldBeNull();
+        attribute.SettingsAs<AssetCollectionSettings>().SetMaxCount(null).IsSuccess.ShouldBeTrue();
+        attribute.SettingsAs<AssetCollectionSettings>().MaxCount.ShouldBeNull();
     }
 
     [Fact]
     public void MaxCountMustBePositive()
     {
-        Create().SetMaxCount(0).Errors.ShouldHaveSingleItem().Code.ShouldBe("attribute.invalid_max_count");
-    }
-
-    [Fact]
-    public void OtherAttributeTypesRejectAMaxCount()
-    {
-        AttributeDefinition.Create(Images, AttributeType.MultiSelect).Value.SetMaxCount(3).Errors
-            .ShouldHaveSingleItem().Code.ShouldBe("attribute.constraint_not_supported");
+        Create().SettingsAs<AssetCollectionSettings>().SetMaxCount(0).Errors.ShouldHaveSingleItem().Code.ShouldBe("attribute.invalid_max_count");
     }
 
     [Fact]
@@ -89,7 +76,7 @@ public sealed class AssetCollectionAttributeTests
     public void MoreAssetsThanTheMaxCountAreRejected()
     {
         var attribute = Create();
-        attribute.SetMaxCount(1);
+        attribute.SettingsAs<AssetCollectionSettings>().SetMaxCount(1);
 
         attribute.Validate(new AssetCollectionValue([Front]), ValueScope.Global).IsSuccess.ShouldBeTrue();
         attribute.Validate(new AssetCollectionValue([Front, Back]), ValueScope.Global).Errors.ShouldHaveSingleItem()
