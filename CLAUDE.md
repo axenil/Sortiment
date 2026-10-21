@@ -17,7 +17,7 @@ Sortiment is a lightweight, open-source **PIM (Product Information Management)**
 | 3 | `Sortiment.Storage.PostgreSql`, `Sortiment.Api` | A headless PIM backend |
 | 4 | `Sortiment.Admin` | A complete PIM with a Blazor admin UI. Start with an MVP: manage families and attributes, browse and edit products, see import status. |
 | 5 | `Sortiment.Feeds.*` | Validated channel feeds (Google Merchant, PriceRunner, …) |
-| 6 | `Sortiment.Excel` | Excel round-trip for bulk editing large numbers of products |
+| 6 | `Sortiment.Excel` | Excel round-trip for bulk editing large numbers of products. Builds on the Excel reader from step 2. |
 | 7 | `Sortiment.Enrichment` | AI-assisted enrichment (descriptions, attribute extraction, translation) |
 | 8 | Extras | Workflow, DAM, versioning, permissions |
 
@@ -35,6 +35,7 @@ Sortiment is a lightweight, open-source **PIM (Product Information Management)**
 | Testing | **xUnit v3**, **Shouldly** (assertions), **NSubstitute** (only when a fake is clumsy), **Testcontainers** (integration), architecture tests | Standard and free. Tests read like documentation, and architecture tests enforce the layering rules. |
 | CI | **GitHub Actions** | Lives next to the code. Build and test on every PR. |
 | Build | Central Package Management (`Directory.Packages.props`), `Directory.Build.props`, nullable enabled, warnings as errors | Consistent settings across all packages |
+| Versioning | **MinVer**: versions come from git tags (`v0.1.0`). All packages are released together with the same version. | No version numbers to maintain by hand, and consumers never have to match package versions |
 
 ## Repository layout
 
@@ -42,7 +43,8 @@ The structure is still being created. This is the target layout:
 
 ```
 src/        Sortiment.* packages (one folder per package)
-tests/      One test project per package: Sortiment.<Package>.Tests
+tests/      One test project per package: Sortiment.<Package>.Tests,
+            plus Sortiment.ArchitectureTests for the dependency rules
 samples/    Small runnable samples showing each package used standalone
 docs/       Documentation; docs/adr/ holds Architecture Decision Records
 ```
@@ -62,11 +64,11 @@ dotnet format --verify-no-changes
 ## Architecture principles
 
 1. **Dependencies point inward.** `Sortiment.Core` depends on nothing in this repo. Nothing may depend on `Api` or `Admin`. Architecture tests enforce this.
-2. **The core is pure.** `Sortiment.Core` has no I/O, no EF Core, no ASP.NET Core and no third-party packages. All I/O (database, files, HTTP, AI services) lives in adapter packages at the edges.
-3. **Tools target abstractions, not the PIM.** Import writes to an `IProductTarget` and feeds read from an `IProductSource`. The Sortiment PIM is just one implementation. Every package must be usable without the rest of Sortiment. Likewise, the admin UI talks to Sortiment **only through the public API**, like any external client, so everything the admin can do, an integration can do too.
-4. **Rich domain model (DDD-light).** Domain types such as `Product`, `Family` and `Attribute` enforce their own invariants (for example, a value must match its attribute's type). They expose behavior through methods, not public setters. Business rules live in the domain, not in services or endpoints.
+2. **The core is pure.** `Sortiment.Core` has no I/O, no EF Core, no ASP.NET Core and no NuGet package dependencies. It may use anything in the .NET base class library (for example `System.Text.Json`). Build-only tools that add no runtime dependency, such as MinVer, are allowed. Core does not log and does not use `IOptions`, so principles 14 and 15 apply to the packages around it. All I/O (database, files, HTTP, AI services) lives in adapter packages at the edges.
+3. **Tools target abstractions, not the PIM.** Import writes to an `IProductTarget` and feeds read from an `IProductSource`. Both interfaces are defined in `Sortiment.Core`, so storage can implement them without depending on Import or Feeds. The Sortiment PIM is just one implementation. Every package must be usable without Storage, Api or Admin. Depending on `Sortiment.Core` is fine, since it has no dependencies of its own. Likewise, the admin UI talks to Sortiment **only through the public API**, like any external client, so everything the admin can do, an integration can do too.
+4. **Rich domain model (DDD-light).** Domain types such as `Product`, `Family` and `AttributeDefinition` enforce their own invariants (for example, a value must match its attribute's type). They expose behavior through methods, not public setters. Business rules live in the domain, not in services or endpoints.
 5. **Plain application services.** Use cases are explicit service classes (for example `ProductService`) called directly from Minimal API endpoints. No mediator, CQRS dispatcher or other hidden indirection.
-6. **Strongly-typed IDs.** Every entity ID is its own `readonly record struct` (for example `ProductId`) wrapping a time-ordered `Guid` v7 (`Guid.CreateVersion7()`). IDs are generated in code, not by the database.
+6. **Strongly-typed IDs.** Every entity ID is its own `readonly record struct` (for example `ProductId`) wrapping a time-ordered `Guid` v7 (`Guid.CreateVersion7()`). IDs are generated in code, not by the database. Definition entities (attributes, attribute options, families, channels, categories, product models) also have an immutable, validated code (for example `AttributeCode`), which imports, feeds and the API use to refer to them. Products have a unique, changeable `Sku`. Internal references always use IDs. See [ADR 0002](docs/adr/0002-entity-identity-ids-and-codes.md).
 7. **One responsibility per type and method.** Keep classes and methods small and focused. Prefer composition over inheritance.
 8. **No global or static mutable state.** No service locator. Dependencies come in through the constructor.
 9. **Async all the way for I/O,** and every async method accepts a `CancellationToken`.
@@ -81,8 +83,8 @@ dotnet format --verify-no-changes
 ## Code conventions
 
 - **Formatting:** follow `.editorconfig` and keep `dotnet format` clean.
-- **Naming:** `PascalCase` for types, methods, properties and constants. `camelCase` for locals and parameters, `_camelCase` for private fields. Interfaces start with `I`, and async methods end with `Async`.
-- **Files:** one public type per file, with the file named after the type. Use file-scoped namespaces matching the folder structure (`Sortiment.Core.Attributes`, …).
+- **Naming:** `PascalCase` for types, methods, properties and constants. `camelCase` for locals and parameters, `_camelCase` for private fields. Interfaces start with `I`, and async methods end with `Async`. Don't name types after common BCL types (`Attribute`, `Type`, `Action`, `Task`, …); they clash with implicit usings for us and for consumers.
+- **Files:** one public type per file, with the file named after the type. Use file-scoped namespaces matching the folder structure (`Sortiment.Core.Products`, …).
 - **Style:** use `var` when the type is obvious, prefer `sealed` classes unless designed for inheritance, and enable nullable reference types everywhere.
 - **Tests:** assert with Shouldly. Prefer hand-written fakes (for example an in-memory `IProductTarget`) over mocks, and use NSubstitute only when a fake would be clumsy. Assert outcomes, not which methods were called.
 - **Comments:** XML docs on public APIs. Inside methods, comment only when the reason behind the code isn't obvious: a non-obvious *why*, a constraint or a trade-off. Never restate *what* the code does. If code needs a comment to explain what it does, split or rename it instead.
@@ -102,7 +104,7 @@ dotnet format --verify-no-changes
 
 - **Do not change the tech stack** (database, frameworks, test tools) without asking first.
 - **Do not add NuGet packages or other external dependencies without asking.** When proposing one, state its license. Only MIT, Apache-2.0 or BSD licenses are allowed. No commercial or copyleft packages; this rules out, for example, FluentAssertions 8+, MediatR 13+ and AutoMapper 15+.
-- **Do not add any dependencies to `Sortiment.Core`.**
+- **Do not add any dependencies to `Sortiment.Core`** beyond the .NET base class library (see principle 2).
 - **Do not push, open pull requests or merge without explicit approval.** Never commit directly to `main`, and never force-push or rewrite its history.
 - **Do not reference Aspire from library packages.** Aspire belongs only in `Sortiment.AppHost`, `Sortiment.ServiceDefaults` and the application hosts (`Api`, `Admin`).
 - **Do not add a logging framework** (Serilog, NLog, …) or other cross-cutting infrastructure to library packages.
@@ -110,7 +112,7 @@ dotnet format --verify-no-changes
 - **Do not disable, skip or delete tests, analyzers or warnings** to make a build pass. Fix the cause or ask.
 - **Do not make breaking changes to the public API** of a released package without asking.
 - **Do not commit secrets, connection strings or personal data.** Use user secrets or environment variables.
-- **Do not edit an EF Core migration that has already been committed.** Add a new one instead.
+- **Do not edit an EF Core migration that has already been committed.** Add a new one instead. Before the first release, resetting migrations may be cleaner, but ask first.
 - **Do not change CI workflows, repository settings or the license** without asking.
 - **Do not write documentation or code comments in Swedish.**
 - **Do not write unnecessary comments,** or comments that depend on context the reader doesn't have (conversations, debugging sessions, earlier versions of the code).
