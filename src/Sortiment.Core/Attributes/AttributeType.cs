@@ -52,4 +52,10 @@ public enum AttributeType
     /// Create measurement attributes with <see cref="AttributeDefinition.CreateMeasurement"/>.
     /// </summary>
     Measurement = 9,
+
+    /// <summary>
+    /// One or more assets from the attribute's asset family, in order, for example product images.
+    /// Create asset collection attributes with <see cref="AttributeDefinition.CreateAssetCollection"/>.
+    /// </summary>
+    AssetCollection = 10,
 }

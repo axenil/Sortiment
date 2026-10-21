@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Sortiment.Core.Assets;
 using Sortiment.Core.Measurements;
 using Sortiment.Core.Values;
 
@@ -29,7 +30,8 @@ public sealed class AttributeDefinition
         AttributeType type,
         bool isLocalizable,
         bool isScopable,
-        MeasurementFamily? measurementFamily)
+        MeasurementFamily? measurementFamily = null,
+        AssetFamilyId? assetFamilyId = null)
     {
         Id = id;
         Code = code;
@@ -37,6 +39,7 @@ public sealed class AttributeDefinition
         IsLocalizable = isLocalizable;
         IsScopable = isScopable;
         MeasurementFamily = measurementFamily;
+        AssetFamilyId = assetFamilyId;
         Options = _options.AsReadOnly();
     }
 
@@ -83,6 +86,17 @@ public sealed class AttributeDefinition
     public MeasurementFamily? MeasurementFamily { get; }
 
     /// <summary>
+    /// Gets the asset family whose assets an asset collection attribute holds.
+    /// <see langword="null"/> for other attribute types.
+    /// </summary>
+    public AssetFamilyId? AssetFamilyId { get; }
+
+    /// <summary>
+    /// Gets the maximum number of assets in an asset collection value, or <see langword="null"/> for no limit.
+    /// </summary>
+    public int? MaxCount { get; private set; }
+
+    /// <summary>
     /// Gets a value indicating whether the attribute holds text and so supports <see cref="MaxLength"/>.
     /// </summary>
     public bool IsTextual => Type is AttributeType.Text or AttributeType.TextArea or AttributeType.Identifier;
@@ -121,8 +135,8 @@ public sealed class AttributeDefinition
     /// </returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="type"/> is not a defined attribute type.</exception>
     /// <exception cref="ArgumentException">
-    /// <paramref name="type"/> is <see cref="AttributeType.Measurement"/>, which needs a measurement family.
-    /// Use <see cref="CreateMeasurement"/> instead.
+    /// <paramref name="type"/> is <see cref="AttributeType.Measurement"/> or <see cref="AttributeType.AssetCollection"/>,
+    /// which need a family. Use <see cref="CreateMeasurement"/> or <see cref="CreateAssetCollection"/> instead.
     /// </exception>
     public static Result<AttributeDefinition> Create(
         AttributeCode code,
@@ -143,6 +157,13 @@ public sealed class AttributeDefinition
                 nameof(type));
         }
 
+        if (type == AttributeType.AssetCollection)
+        {
+            throw new ArgumentException(
+                $"An asset collection attribute needs an asset family. Use {nameof(CreateAssetCollection)} instead.",
+                nameof(type));
+        }
+
         var errors = new List<ResultError>();
         if (type == AttributeType.Identifier && isLocalizable)
         {
@@ -155,7 +176,7 @@ public sealed class AttributeDefinition
         }
 
         return errors.Count == 0
-            ? Result.Success(new AttributeDefinition(AttributeId.New(), code, type, isLocalizable, isScopable, null))
+            ? Result.Success(new AttributeDefinition(AttributeId.New(), code, type, isLocalizable, isScopable))
             : Result.Failure<AttributeDefinition>(errors);
     }
 
@@ -184,7 +205,33 @@ public sealed class AttributeDefinition
             AttributeType.Measurement,
             isLocalizable,
             isScopable,
-            measurementFamily));
+            measurementFamily: measurementFamily));
+    }
+
+    /// <summary>
+    /// Creates a new asset collection attribute. The asset family cannot change after the attribute is created.
+    /// </summary>
+    /// <param name="code">The attribute's code.</param>
+    /// <param name="assetFamily">The family whose assets the attribute's values hold.</param>
+    /// <param name="isLocalizable">Whether the attribute has a separate value per locale.</param>
+    /// <param name="isScopable">Whether the attribute has a separate value per channel.</param>
+    /// <returns>The new attribute.</returns>
+    public static Result<AttributeDefinition> CreateAssetCollection(
+        AttributeCode code,
+        AssetFamily assetFamily,
+        bool isLocalizable = false,
+        bool isScopable = false)
+    {
+        ArgumentNullException.ThrowIfNull(code);
+        ArgumentNullException.ThrowIfNull(assetFamily);
+
+        return Result.Success(new AttributeDefinition(
+            AttributeId.New(),
+            code,
+            AttributeType.AssetCollection,
+            isLocalizable,
+            isScopable,
+            assetFamilyId: assetFamily.Id));
     }
 
     /// <summary>
@@ -264,6 +311,30 @@ public sealed class AttributeDefinition
     }
 
     /// <summary>
+    /// Sets the maximum number of assets in an asset collection attribute's values.
+    /// </summary>
+    /// <param name="maxCount">The maximum number of assets, or <see langword="null"/> for no limit.</param>
+    /// <returns>
+    /// Success, or the error <c>attribute.constraint_not_supported</c> if this is not an asset collection attribute,
+    /// or <c>attribute.invalid_max_count</c> if <paramref name="maxCount"/> is less than 1.
+    /// </returns>
+    public Result SetMaxCount(int? maxCount)
+    {
+        if (Type != AttributeType.AssetCollection)
+        {
+            return Result.Failure(AttributeErrors.ConstraintNotSupported(Code, Type, "a maximum count"));
+        }
+
+        if (maxCount < 1)
+        {
+            return Result.Failure(AttributeErrors.InvalidMaxCount(Code, maxCount.Value));
+        }
+
+        MaxCount = maxCount;
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Checks whether a value can be stored for this attribute in the given scope.
     /// </summary>
     /// <param name="value">The value.</param>
@@ -272,7 +343,10 @@ public sealed class AttributeDefinition
     /// Success, or every problem found: errors from <see cref="ValidateScope"/>, plus <c>value.type_mismatch</c>,
     /// <c>value.empty</c>, <c>value.line_break_not_allowed</c>, <c>value.surrounding_whitespace</c>,
     /// <c>value.too_long</c>, <c>value.below_minimum</c>, <c>value.above_maximum</c>, <c>value.too_many_decimals</c>,
-    /// <c>value.unknown_option</c> or <c>value.duplicate_option</c>.
+    /// <c>value.unknown_option</c>, <c>value.duplicate_option</c>, <c>value.unknown_unit</c>,
+    /// <c>value.duplicate_asset</c> or <c>value.too_many_assets</c>.
+    /// Whether the assets of an asset collection exist and belong to <see cref="AssetFamilyId"/> is not checked here,
+    /// because that needs the assets themselves.
     /// Each error's context includes the attribute and, when present, the scope's locale and channel.
     /// </returns>
     public Result Validate(AttributeValue value, ValueScope scope)

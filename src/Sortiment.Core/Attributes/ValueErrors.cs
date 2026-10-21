@@ -1,4 +1,5 @@
 using System.Globalization;
+using Sortiment.Core.Assets;
 using Sortiment.Core.Measurements;
 using Sortiment.Core.Values;
 
@@ -78,6 +79,19 @@ internal static class ValueErrors
                 $"Attribute '{attribute.Code}' measures {family.Code}, which has no unit '{unit}'.")
             .WithContext(ErrorContextKeys.MeasurementFamily, family.Code.Value)
             .WithContext(ErrorContextKeys.Unit, unit.Value);
+
+    public static ResultError DuplicateAsset(AttributeDefinition attribute, AssetId asset) =>
+        Create(
+                attribute,
+                "value.duplicate_asset",
+                $"The value of attribute '{attribute.Code}' contains asset {asset} more than once.")
+            .WithContext(ErrorContextKeys.Value, asset.ToString());
+
+    public static ResultError TooManyAssets(AttributeDefinition attribute, int count, int maxCount) =>
+        Create(
+            attribute,
+            "value.too_many_assets",
+            $"The value of attribute '{attribute.Code}' has {count} assets. The maximum is {maxCount}.");
 
     public static ResultError LocaleRequired(AttributeDefinition attribute) =>
         Create(
