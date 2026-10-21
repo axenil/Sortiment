@@ -26,6 +26,16 @@ public static class ErrorContextKeys
     public const string Locale = "locale";
 
     /// <summary>
+    /// The code of the asset family the error relates to.
+    /// </summary>
+    public const string AssetFamily = "asset_family";
+
+    /// <summary>
+    /// The code of the asset the error relates to.
+    /// </summary>
+    public const string Asset = "asset";
+
+    /// <summary>
     /// The code of the measurement family the error relates to.
     /// </summary>
     public const string MeasurementFamily = "measurement_family";
