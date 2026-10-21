@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Sortiment.Core.Attributes;
 
 internal static class AttributeErrors
@@ -26,6 +28,30 @@ internal static class AttributeErrors
                 $"Attribute '{attribute}' already has an option '{option}'.")
             .WithContext(ErrorContextKeys.Attribute, attribute.Value)
             .WithContext(ErrorContextKeys.Option, option.Value);
+
+    public static ResultError ConstraintNotSupported(AttributeCode attribute, AttributeType type, string constraint) =>
+        new ResultError(
+                "attribute.constraint_not_supported",
+                $"Attribute '{attribute}' has type {type}, which does not support {constraint}.")
+            .WithContext(ErrorContextKeys.Attribute, attribute.Value);
+
+    public static ResultError InvalidMaxLength(AttributeCode attribute, int maxLength) =>
+        new ResultError(
+                "attribute.invalid_max_length",
+                $"The maximum length of attribute '{attribute}' must be at least 1, but was {maxLength}.")
+            .WithContext(ErrorContextKeys.Attribute, attribute.Value);
+
+    public static ResultError InvalidRange(AttributeCode attribute, decimal minimum, decimal maximum) =>
+        new ResultError(
+                "attribute.invalid_range",
+                $"The minimum of attribute '{attribute}' ({minimum.ToString(CultureInfo.InvariantCulture)}) is greater than its maximum ({maximum.ToString(CultureInfo.InvariantCulture)}).")
+            .WithContext(ErrorContextKeys.Attribute, attribute.Value);
+
+    public static ResultError InvalidDecimalPlaces(AttributeCode attribute, int decimalPlaces) =>
+        new ResultError(
+                "attribute.invalid_decimal_places",
+                $"The decimal places of attribute '{attribute}' must be between 0 and {AttributeDefinition.MaxDecimalPlaces}, but was {decimalPlaces}.")
+            .WithContext(ErrorContextKeys.Attribute, attribute.Value);
 
     public static ResultError OptionNotFound(AttributeCode attribute, AttributeOptionCode option) =>
         new ResultError(

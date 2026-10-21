@@ -1,16 +1,25 @@
 using System.Collections.ObjectModel;
+using Sortiment.Core.Values;
 
 namespace Sortiment.Core.Attributes;
 
 /// <summary>
-/// Defines a product attribute: what kind of value it holds and whether its values vary by locale or channel.
+/// Defines a product attribute: what kind of value it holds, which values are valid, and whether its values vary by
+/// locale or channel.
 /// </summary>
 /// <remarks>
 /// The code, type and scoping flags are fixed when the attribute is created, because changing them would
-/// invalidate values that products already have.
+/// invalidate values that products already have. Constraints such as <see cref="MaxLength"/> can change; values that
+/// break a tightened constraint are reported the next time they are validated.
 /// </remarks>
 public sealed class AttributeDefinition
 {
+    /// <summary>
+    /// The largest number of decimal places a <see cref="decimal"/> can represent, and so the largest allowed
+    /// <see cref="DecimalPlaces"/>.
+    /// </summary>
+    public const int MaxDecimalPlaces = 28;
+
     private readonly List<AttributeOption> _options = [];
 
     private AttributeDefinition(
@@ -65,6 +74,32 @@ public sealed class AttributeDefinition
     public ReadOnlyCollection<AttributeOption> Options { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the attribute holds text and so supports <see cref="MaxLength"/>.
+    /// </summary>
+    public bool IsTextual => Type is AttributeType.Text or AttributeType.TextArea or AttributeType.Identifier;
+
+    /// <summary>
+    /// Gets the maximum length of a textual value, counted in Unicode code points, or <see langword="null"/> for no limit.
+    /// </summary>
+    public int? MaxLength { get; private set; }
+
+    /// <summary>
+    /// Gets the smallest allowed value of a number attribute, or <see langword="null"/> for no limit.
+    /// </summary>
+    public decimal? MinValue { get; private set; }
+
+    /// <summary>
+    /// Gets the largest allowed value of a number attribute, or <see langword="null"/> for no limit.
+    /// </summary>
+    public decimal? MaxValue { get; private set; }
+
+    /// <summary>
+    /// Gets the maximum number of decimal places of a number attribute, or <see langword="null"/> for no limit.
+    /// Zero allows whole numbers only.
+    /// </summary>
+    public int? DecimalPlaces { get; private set; }
+
+    /// <summary>
     /// Creates a new attribute.
     /// </summary>
     /// <param name="code">The attribute's code.</param>
@@ -102,6 +137,124 @@ public sealed class AttributeDefinition
         return errors.Count == 0
             ? Result.Success(new AttributeDefinition(AttributeId.New(), code, type, isLocalizable, isScopable))
             : Result.Failure<AttributeDefinition>(errors);
+    }
+
+    /// <summary>
+    /// Sets the maximum length of a textual attribute's values.
+    /// </summary>
+    /// <param name="maxLength">The maximum length in Unicode code points, or <see langword="null"/> for no limit.</param>
+    /// <returns>
+    /// Success, or the error <c>attribute.constraint_not_supported</c> if the attribute is not textual, or
+    /// <c>attribute.invalid_max_length</c> if <paramref name="maxLength"/> is less than 1.
+    /// </returns>
+    public Result SetMaxLength(int? maxLength)
+    {
+        if (!IsTextual)
+        {
+            return Result.Failure(AttributeErrors.ConstraintNotSupported(Code, Type, "a maximum length"));
+        }
+
+        if (maxLength < 1)
+        {
+            return Result.Failure(AttributeErrors.InvalidMaxLength(Code, maxLength.Value));
+        }
+
+        MaxLength = maxLength;
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Sets the range of a number attribute's values. Both limits are inclusive.
+    /// </summary>
+    /// <param name="minValue">The smallest allowed value, or <see langword="null"/> for no lower limit.</param>
+    /// <param name="maxValue">The largest allowed value, or <see langword="null"/> for no upper limit.</param>
+    /// <returns>
+    /// Success, or the error <c>attribute.constraint_not_supported</c> if this is not a number attribute, or
+    /// <c>attribute.invalid_range</c> if the minimum is greater than the maximum.
+    /// </returns>
+    public Result SetRange(decimal? minValue, decimal? maxValue)
+    {
+        if (Type != AttributeType.Number)
+        {
+            return Result.Failure(AttributeErrors.ConstraintNotSupported(Code, Type, "a range"));
+        }
+
+        if (minValue > maxValue)
+        {
+            return Result.Failure(AttributeErrors.InvalidRange(Code, minValue.Value, maxValue.Value));
+        }
+
+        MinValue = minValue;
+        MaxValue = maxValue;
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Sets the maximum number of decimal places of a number attribute's values.
+    /// </summary>
+    /// <param name="decimalPlaces">
+    /// The maximum number of decimal places, where zero allows whole numbers only, or <see langword="null"/> for no limit.
+    /// </param>
+    /// <returns>
+    /// Success, or the error <c>attribute.constraint_not_supported</c> if this is not a number attribute, or
+    /// <c>attribute.invalid_decimal_places</c> if the value is outside 0–<see cref="MaxDecimalPlaces"/>.
+    /// </returns>
+    public Result SetDecimalPlaces(int? decimalPlaces)
+    {
+        if (Type != AttributeType.Number)
+        {
+            return Result.Failure(AttributeErrors.ConstraintNotSupported(Code, Type, "decimal places"));
+        }
+
+        if (decimalPlaces is < 0 or > MaxDecimalPlaces)
+        {
+            return Result.Failure(AttributeErrors.InvalidDecimalPlaces(Code, decimalPlaces.Value));
+        }
+
+        DecimalPlaces = decimalPlaces;
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Checks whether a value can be stored for this attribute in the given scope.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="scope">The locale and channel the value applies to.</param>
+    /// <returns>
+    /// Success, or every problem found: errors from <see cref="ValidateScope"/>, plus <c>value.type_mismatch</c>,
+    /// <c>value.empty</c>, <c>value.line_break_not_allowed</c>, <c>value.surrounding_whitespace</c>,
+    /// <c>value.too_long</c>, <c>value.below_minimum</c>, <c>value.above_maximum</c>, <c>value.too_many_decimals</c>,
+    /// <c>value.unknown_option</c> or <c>value.duplicate_option</c>.
+    /// Each error's context includes the attribute and, when present, the scope's locale and channel.
+    /// </returns>
+    public Result Validate(AttributeValue value, ValueScope scope)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullException.ThrowIfNull(scope);
+
+        var errors = ScopeErrors(scope)
+            .Concat(AttributeValueValidator.Validate(this, value))
+            .Select(error => AddScopeContext(error, scope))
+            .ToList();
+
+        return errors.Count == 0 ? Result.Success() : Result.Failure(errors);
+    }
+
+    /// <summary>
+    /// Checks whether a scope fits this attribute: localizable attributes need a locale, scopable attributes need
+    /// a channel, and other attributes must not have them.
+    /// </summary>
+    /// <param name="scope">The scope.</param>
+    /// <returns>
+    /// Success, or the errors <c>value.locale_required</c>, <c>value.locale_not_allowed</c>,
+    /// <c>value.channel_required</c> or <c>value.channel_not_allowed</c>.
+    /// </returns>
+    public Result ValidateScope(ValueScope scope)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+
+        var errors = ScopeErrors(scope).Select(error => AddScopeContext(error, scope)).ToList();
+        return errors.Count == 0 ? Result.Success() : Result.Failure(errors);
     }
 
     /// <summary>
@@ -163,5 +316,50 @@ public sealed class AttributeDefinition
         ArgumentNullException.ThrowIfNull(code);
 
         return _options.Find(option => option.Code == code);
+    }
+
+    /// <summary>
+    /// Finds an option by ID.
+    /// </summary>
+    /// <param name="id">The option's ID.</param>
+    /// <returns>The option, or <see langword="null"/> if the attribute has no such option.</returns>
+    public AttributeOption? FindOption(AttributeOptionId id) => _options.Find(option => option.Id == id);
+
+    private IEnumerable<ResultError> ScopeErrors(ValueScope scope)
+    {
+        if (IsLocalizable && scope.Locale is null)
+        {
+            yield return ValueErrors.LocaleRequired(this);
+        }
+
+        if (!IsLocalizable && scope.Locale is not null)
+        {
+            yield return ValueErrors.LocaleNotAllowed(this);
+        }
+
+        if (IsScopable && scope.ChannelId is null)
+        {
+            yield return ValueErrors.ChannelRequired(this);
+        }
+
+        if (!IsScopable && scope.ChannelId is not null)
+        {
+            yield return ValueErrors.ChannelNotAllowed(this);
+        }
+    }
+
+    private static ResultError AddScopeContext(ResultError error, ValueScope scope)
+    {
+        if (scope.Locale is { } locale)
+        {
+            error = error.WithContext(ErrorContextKeys.Locale, locale.Code);
+        }
+
+        if (scope.ChannelId is { } channelId)
+        {
+            error = error.WithContext(ErrorContextKeys.Channel, channelId.ToString());
+        }
+
+        return error;
     }
 }
