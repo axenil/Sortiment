@@ -19,8 +19,34 @@ internal static class AttributeValueValidator
             (AttributeType.SingleSelect, SingleSelectValue single) => ValidateSingleSelect(attribute, single),
             (AttributeType.MultiSelect, MultiSelectValue multi) => ValidateMultiSelect(attribute, multi),
             (AttributeType.Measurement, MeasurementValue measurement) => ValidateMeasurement(attribute, measurement),
+            (AttributeType.AssetCollection, AssetCollectionValue assets) => ValidateAssetCollection(attribute, assets),
             _ => [ValueErrors.TypeMismatch(attribute, value)],
         };
+
+    private static IEnumerable<ResultError> ValidateAssetCollection(
+        AttributeDefinition attribute,
+        AssetCollectionValue value)
+    {
+        if (value.Assets.Count == 0)
+        {
+            yield return ValueErrors.Empty(attribute);
+            yield break;
+        }
+
+        var duplicates = value.Assets
+            .GroupBy(asset => asset)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key);
+        foreach (var duplicate in duplicates)
+        {
+            yield return ValueErrors.DuplicateAsset(attribute, duplicate);
+        }
+
+        if (attribute.MaxCount is { } maxCount && value.Assets.Count > maxCount)
+        {
+            yield return ValueErrors.TooManyAssets(attribute, value.Assets.Count, maxCount);
+        }
+    }
 
     private static IEnumerable<ResultError> ValidateMeasurement(AttributeDefinition attribute, MeasurementValue value)
     {

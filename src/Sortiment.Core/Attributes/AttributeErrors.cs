@@ -53,6 +53,12 @@ internal static class AttributeErrors
                 $"The decimal places of attribute '{attribute}' must be between 0 and {AttributeDefinition.MaxDecimalPlaces}, but was {decimalPlaces}.")
             .WithContext(ErrorContextKeys.Attribute, attribute.Value);
 
+    public static ResultError InvalidMaxCount(AttributeCode attribute, int maxCount) =>
+        new ResultError(
+                "attribute.invalid_max_count",
+                $"The maximum count of attribute '{attribute}' must be at least 1, but was {maxCount}.")
+            .WithContext(ErrorContextKeys.Attribute, attribute.Value);
+
     public static ResultError OptionNotFound(AttributeCode attribute, AttributeOptionCode option) =>
         new ResultError(
                 "attribute.option_not_found",
