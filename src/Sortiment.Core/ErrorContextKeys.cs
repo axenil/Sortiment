@@ -16,7 +16,7 @@ public static class ErrorContextKeys
     public const string Option = "option";
 
     /// <summary>
-    /// The code of the channel the error relates to.
+    /// The channel the error relates to: its code, or its ID where only the ID is known.
     /// </summary>
     public const string Channel = "channel";
 
