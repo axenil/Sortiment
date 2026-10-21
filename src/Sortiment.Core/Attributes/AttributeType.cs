@@ -46,4 +46,10 @@ public enum AttributeType
     /// Identifiers are the same in every locale and channel, so they cannot be localizable or scopable.
     /// </summary>
     Identifier = 8,
+
+    /// <summary>
+    /// An amount in a unit of the attribute's measurement family, for example a weight of <c>1.2 kg</c>.
+    /// Create measurement attributes with <see cref="AttributeDefinition.CreateMeasurement"/>.
+    /// </summary>
+    Measurement = 9,
 }

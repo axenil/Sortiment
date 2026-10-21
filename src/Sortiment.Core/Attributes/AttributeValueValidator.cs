@@ -18,8 +18,18 @@ internal static class AttributeValueValidator
             (AttributeType.Date, DateValue) => [],
             (AttributeType.SingleSelect, SingleSelectValue single) => ValidateSingleSelect(attribute, single),
             (AttributeType.MultiSelect, MultiSelectValue multi) => ValidateMultiSelect(attribute, multi),
+            (AttributeType.Measurement, MeasurementValue measurement) => ValidateMeasurement(attribute, measurement),
             _ => [ValueErrors.TypeMismatch(attribute, value)],
         };
+
+    private static IEnumerable<ResultError> ValidateMeasurement(AttributeDefinition attribute, MeasurementValue value)
+    {
+        var family = attribute.MeasurementFamily!;
+        if (family.FindUnit(value.Unit) is null)
+        {
+            yield return ValueErrors.UnknownUnit(attribute, family, value.Unit);
+        }
+    }
 
     private static IEnumerable<ResultError> ValidateText(AttributeDefinition attribute, string text)
     {

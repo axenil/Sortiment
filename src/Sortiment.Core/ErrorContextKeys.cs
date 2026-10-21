@@ -26,6 +26,16 @@ public static class ErrorContextKeys
     public const string Locale = "locale";
 
     /// <summary>
+    /// The code of the measurement family the error relates to.
+    /// </summary>
+    public const string MeasurementFamily = "measurement_family";
+
+    /// <summary>
+    /// The code of the measurement unit the error relates to.
+    /// </summary>
+    public const string Unit = "unit";
+
+    /// <summary>
     /// The invalid input value.
     /// </summary>
     public const string Value = "value";

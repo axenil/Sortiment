@@ -1,4 +1,5 @@
 using System.Globalization;
+using Sortiment.Core.Measurements;
 using Sortiment.Core.Values;
 
 namespace Sortiment.Core.Attributes;
@@ -69,6 +70,14 @@ internal static class ValueErrors
                 "value.duplicate_option",
                 $"The value of attribute '{attribute.Code}' selects option {Describe(attribute, option)} more than once.")
             .WithContext(ErrorContextKeys.Value, option.ToString());
+
+    public static ResultError UnknownUnit(AttributeDefinition attribute, MeasurementFamily family, UnitCode unit) =>
+        Create(
+                attribute,
+                "value.unknown_unit",
+                $"Attribute '{attribute.Code}' measures {family.Code}, which has no unit '{unit}'.")
+            .WithContext(ErrorContextKeys.MeasurementFamily, family.Code.Value)
+            .WithContext(ErrorContextKeys.Unit, unit.Value);
 
     public static ResultError LocaleRequired(AttributeDefinition attribute) =>
         Create(

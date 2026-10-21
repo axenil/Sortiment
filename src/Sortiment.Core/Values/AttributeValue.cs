@@ -3,7 +3,7 @@ namespace Sortiment.Core.Values;
 /// <summary>
 /// A product's value for an attribute. The set of value types is closed: <see cref="TextValue"/>,
 /// <see cref="BooleanValue"/>, <see cref="NumberValue"/>, <see cref="DateValue"/>,
-/// <see cref="SingleSelectValue"/> and <see cref="MultiSelectValue"/>.
+/// <see cref="SingleSelectValue"/>, <see cref="MultiSelectValue"/> and <see cref="MeasurementValue"/>.
 /// </summary>
 /// <remarks>
 /// Values are immutable and compared by value. A value on its own is not known to be valid: rules that depend on the

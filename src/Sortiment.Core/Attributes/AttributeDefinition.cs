@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Sortiment.Core.Measurements;
 using Sortiment.Core.Values;
 
 namespace Sortiment.Core.Attributes;
@@ -27,13 +28,15 @@ public sealed class AttributeDefinition
         AttributeCode code,
         AttributeType type,
         bool isLocalizable,
-        bool isScopable)
+        bool isScopable,
+        MeasurementFamily? measurementFamily)
     {
         Id = id;
         Code = code;
         Type = type;
         IsLocalizable = isLocalizable;
         IsScopable = isScopable;
+        MeasurementFamily = measurementFamily;
         Options = _options.AsReadOnly();
     }
 
@@ -74,6 +77,12 @@ public sealed class AttributeDefinition
     public ReadOnlyCollection<AttributeOption> Options { get; }
 
     /// <summary>
+    /// Gets the measurement family of a measurement attribute, which decides the units its values can use.
+    /// <see langword="null"/> for other attribute types.
+    /// </summary>
+    public MeasurementFamily? MeasurementFamily { get; }
+
+    /// <summary>
     /// Gets a value indicating whether the attribute holds text and so supports <see cref="MaxLength"/>.
     /// </summary>
     public bool IsTextual => Type is AttributeType.Text or AttributeType.TextArea or AttributeType.Identifier;
@@ -111,6 +120,10 @@ public sealed class AttributeDefinition
     /// <c>attribute.identifier_cannot_be_scopable</c> if an identifier attribute is scoped.
     /// </returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="type"/> is not a defined attribute type.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="type"/> is <see cref="AttributeType.Measurement"/>, which needs a measurement family.
+    /// Use <see cref="CreateMeasurement"/> instead.
+    /// </exception>
     public static Result<AttributeDefinition> Create(
         AttributeCode code,
         AttributeType type,
@@ -121,6 +134,13 @@ public sealed class AttributeDefinition
         if (!Enum.IsDefined(type))
         {
             throw new ArgumentOutOfRangeException(nameof(type), type, "Unknown attribute type.");
+        }
+
+        if (type == AttributeType.Measurement)
+        {
+            throw new ArgumentException(
+                $"A measurement attribute needs a measurement family. Use {nameof(CreateMeasurement)} instead.",
+                nameof(type));
         }
 
         var errors = new List<ResultError>();
@@ -135,8 +155,36 @@ public sealed class AttributeDefinition
         }
 
         return errors.Count == 0
-            ? Result.Success(new AttributeDefinition(AttributeId.New(), code, type, isLocalizable, isScopable))
+            ? Result.Success(new AttributeDefinition(AttributeId.New(), code, type, isLocalizable, isScopable, null))
             : Result.Failure<AttributeDefinition>(errors);
+    }
+
+    /// <summary>
+    /// Creates a new measurement attribute. The measurement family cannot change after the attribute is created.
+    /// </summary>
+    /// <param name="code">The attribute's code.</param>
+    /// <param name="measurementFamily">
+    /// The family whose units the attribute's values use, for example <see cref="MeasurementFamilies.Weight"/>.
+    /// </param>
+    /// <param name="isLocalizable">Whether the attribute has a separate value per locale.</param>
+    /// <param name="isScopable">Whether the attribute has a separate value per channel.</param>
+    /// <returns>The new attribute.</returns>
+    public static Result<AttributeDefinition> CreateMeasurement(
+        AttributeCode code,
+        MeasurementFamily measurementFamily,
+        bool isLocalizable = false,
+        bool isScopable = false)
+    {
+        ArgumentNullException.ThrowIfNull(code);
+        ArgumentNullException.ThrowIfNull(measurementFamily);
+
+        return Result.Success(new AttributeDefinition(
+            AttributeId.New(),
+            code,
+            AttributeType.Measurement,
+            isLocalizable,
+            isScopable,
+            measurementFamily));
     }
 
     /// <summary>
