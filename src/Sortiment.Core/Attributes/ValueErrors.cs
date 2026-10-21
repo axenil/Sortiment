@@ -65,11 +65,14 @@ internal static class ValueErrors
                 $"Attribute '{attribute.Code}' has no option with ID {option}.")
             .WithContext(ErrorContextKeys.Value, option.ToString());
 
-    public static ResultError DuplicateOption(AttributeDefinition attribute, AttributeOptionId option) =>
+    public static ResultError DuplicateOption(
+        AttributeDefinition attribute,
+        AttributeOptionId option,
+        AttributeOption? knownOption) =>
         Create(
                 attribute,
                 "value.duplicate_option",
-                $"The value of attribute '{attribute.Code}' selects option {Describe(attribute, option)} more than once.")
+                $"The value of attribute '{attribute.Code}' selects option {(knownOption is null ? option.ToString() : $"'{knownOption.Code}'")} more than once.")
             .WithContext(ErrorContextKeys.Value, option.ToString());
 
     public static ResultError UnknownUnit(AttributeDefinition attribute, MeasurementFamily family, UnitCode unit) =>
@@ -119,9 +122,6 @@ internal static class ValueErrors
 
     private static ResultError Create(AttributeDefinition attribute, string code, string message) =>
         new ResultError(code, message).WithContext(ErrorContextKeys.Attribute, attribute.Code.Value);
-
-    private static string Describe(AttributeDefinition attribute, AttributeOptionId option) =>
-        attribute.FindOption(option) is { } known ? $"'{known.Code}'" : option.ToString();
 
     private static string Format(decimal value) => value.ToString(CultureInfo.InvariantCulture);
 }

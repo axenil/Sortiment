@@ -19,7 +19,7 @@ public sealed class AttributeDefinitionTests
         attribute.Type.ShouldBe(AttributeType.TextArea);
         attribute.IsLocalizable.ShouldBeTrue();
         attribute.IsScopable.ShouldBeTrue();
-        attribute.Options.ShouldBeEmpty();
+        attribute.Settings.ShouldBeOfType<TextSettings>();
     }
 
     [Fact]
@@ -61,13 +61,34 @@ public sealed class AttributeDefinitionTests
     }
 
     [Theory]
-    [InlineData(AttributeType.SingleSelect, true)]
-    [InlineData(AttributeType.MultiSelect, true)]
-    [InlineData(AttributeType.Text, false)]
-    [InlineData(AttributeType.Number, false)]
-    public void OnlySelectAttributesHaveOptions(AttributeType type, bool expected)
+    [InlineData(AttributeType.Text, typeof(TextSettings))]
+    [InlineData(AttributeType.TextArea, typeof(TextSettings))]
+    [InlineData(AttributeType.Identifier, typeof(TextSettings))]
+    [InlineData(AttributeType.Boolean, typeof(BooleanSettings))]
+    [InlineData(AttributeType.Number, typeof(NumberSettings))]
+    [InlineData(AttributeType.Date, typeof(DateSettings))]
+    [InlineData(AttributeType.SingleSelect, typeof(SelectSettings))]
+    [InlineData(AttributeType.MultiSelect, typeof(SelectSettings))]
+    public void EachTypeGetsTheMatchingSettings(AttributeType type, Type settingsType)
     {
-        AttributeDefinition.Create(Color, type).Value.HasOptions.ShouldBe(expected);
+        AttributeDefinition.Create(Color, type).Value.Settings.ShouldBeOfType(settingsType);
+    }
+
+    [Fact]
+    public void SettingsAsReturnsTheSettingsOfTheMatchingType()
+    {
+        var attribute = AttributeDefinition.Create(Color, AttributeType.SingleSelect).Value;
+
+        attribute.SettingsAs<SelectSettings>().ShouldBeSameAs(attribute.Settings);
+    }
+
+    [Fact]
+    public void SettingsAsThrowsForAnotherSettingsType()
+    {
+        var attribute = AttributeDefinition.Create(AttributeCode.Parse("name"), AttributeType.Text).Value;
+
+        var exception = Should.Throw<InvalidOperationException>(() => attribute.SettingsAs<SelectSettings>());
+        exception.Message.ShouldContain("TextSettings");
     }
 
     [Fact]
@@ -75,49 +96,38 @@ public sealed class AttributeDefinitionTests
     {
         var attribute = AttributeDefinition.Create(Color, AttributeType.SingleSelect).Value;
 
-        var red = attribute.AddOption(Red).Value;
-        attribute.AddOption(Blue);
+        var red = attribute.SettingsAs<SelectSettings>().AddOption(Red).Value;
+        attribute.SettingsAs<SelectSettings>().AddOption(Blue);
 
         red.Code.ShouldBe(Red);
-        attribute.Options.Select(option => option.Code).ShouldBe([Red, Blue]);
+        attribute.SettingsAs<SelectSettings>().Options.Select(option => option.Code).ShouldBe([Red, Blue]);
     }
 
     [Fact]
     public void AddOptionRejectsADuplicateCode()
     {
         var attribute = AttributeDefinition.Create(Color, AttributeType.MultiSelect).Value;
-        attribute.AddOption(Red);
+        attribute.SettingsAs<SelectSettings>().AddOption(Red);
 
-        var result = attribute.AddOption(AttributeOptionCode.Parse("red"));
+        var result = attribute.SettingsAs<SelectSettings>().AddOption(AttributeOptionCode.Parse("red"));
 
         var error = result.Errors.ShouldHaveSingleItem();
         error.Code.ShouldBe("attribute.option_already_exists");
         error.Context[ErrorContextKeys.Option].ShouldBe("red");
-        attribute.Options.Count.ShouldBe(1);
-    }
-
-    [Fact]
-    public void AddOptionIsRejectedForAttributesWithoutOptions()
-    {
-        var attribute = AttributeDefinition.Create(AttributeCode.Parse("name"), AttributeType.Text).Value;
-
-        var result = attribute.AddOption(Red);
-
-        result.Errors.ShouldHaveSingleItem().Code.ShouldBe("attribute.options_not_supported");
-        attribute.Options.ShouldBeEmpty();
+        attribute.SettingsAs<SelectSettings>().Options.Count.ShouldBe(1);
     }
 
     [Fact]
     public void RemoveOptionRemovesTheOption()
     {
         var attribute = AttributeDefinition.Create(Color, AttributeType.SingleSelect).Value;
-        attribute.AddOption(Red);
-        attribute.AddOption(Blue);
+        attribute.SettingsAs<SelectSettings>().AddOption(Red);
+        attribute.SettingsAs<SelectSettings>().AddOption(Blue);
 
-        var result = attribute.RemoveOption(Red);
+        var result = attribute.SettingsAs<SelectSettings>().RemoveOption(Red);
 
         result.IsSuccess.ShouldBeTrue();
-        attribute.Options.Select(option => option.Code).ShouldBe([Blue]);
+        attribute.SettingsAs<SelectSettings>().Options.Select(option => option.Code).ShouldBe([Blue]);
     }
 
     [Fact]
@@ -125,7 +135,7 @@ public sealed class AttributeDefinitionTests
     {
         var attribute = AttributeDefinition.Create(Color, AttributeType.SingleSelect).Value;
 
-        var result = attribute.RemoveOption(Red);
+        var result = attribute.SettingsAs<SelectSettings>().RemoveOption(Red);
 
         result.Errors.ShouldHaveSingleItem().Code.ShouldBe("attribute.option_not_found");
     }
@@ -134,10 +144,10 @@ public sealed class AttributeDefinitionTests
     public void FindOptionReturnsTheOptionOrNull()
     {
         var attribute = AttributeDefinition.Create(Color, AttributeType.SingleSelect).Value;
-        var red = attribute.AddOption(Red).Value;
+        var red = attribute.SettingsAs<SelectSettings>().AddOption(Red).Value;
 
-        attribute.FindOption(Red).ShouldBeSameAs(red);
-        attribute.FindOption(Blue).ShouldBeNull();
+        attribute.SettingsAs<SelectSettings>().FindOption(Red).ShouldBeSameAs(red);
+        attribute.SettingsAs<SelectSettings>().FindOption(Blue).ShouldBeNull();
     }
 
     [Fact]
@@ -145,6 +155,6 @@ public sealed class AttributeDefinitionTests
     {
         var attribute = AttributeDefinition.Create(Color, AttributeType.SingleSelect).Value;
 
-        ((ICollection<AttributeOption>)attribute.Options).IsReadOnly.ShouldBeTrue();
+        ((ICollection<AttributeOption>)attribute.SettingsAs<SelectSettings>().Options).IsReadOnly.ShouldBeTrue();
     }
 }

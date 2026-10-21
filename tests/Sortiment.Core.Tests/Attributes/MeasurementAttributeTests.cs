@@ -7,7 +7,6 @@ namespace Sortiment.Core.Tests.Attributes;
 public sealed class MeasurementAttributeTests
 {
     private static readonly AttributeCode NetWeight = AttributeCode.Parse("net_weight");
-    private static readonly AttributeCode Name = AttributeCode.Parse("name");
 
     [Fact]
     public void CreateMeasurementReturnsAMeasurementAttributeWithItsFamily()
@@ -15,7 +14,7 @@ public sealed class MeasurementAttributeTests
         var attribute = AttributeDefinition.CreateMeasurement(NetWeight, MeasurementFamilies.Weight).Value;
 
         attribute.Type.ShouldBe(AttributeType.Measurement);
-        attribute.MeasurementFamily.ShouldBeSameAs(MeasurementFamilies.Weight);
+        attribute.SettingsAs<MeasurementSettings>().Family.ShouldBeSameAs(MeasurementFamilies.Weight);
         attribute.IsLocalizable.ShouldBeFalse();
         attribute.IsScopable.ShouldBeFalse();
     }
@@ -24,12 +23,6 @@ public sealed class MeasurementAttributeTests
     public void CreateRefusesTheMeasurementTypeBecauseItNeedsAFamily()
     {
         Should.Throw<ArgumentException>(() => AttributeDefinition.Create(NetWeight, AttributeType.Measurement));
-    }
-
-    [Fact]
-    public void OtherAttributeTypesHaveNoMeasurementFamily()
-    {
-        AttributeDefinition.Create(Name, AttributeType.Text).Value.MeasurementFamily.ShouldBeNull();
     }
 
     [Theory]
@@ -66,10 +59,10 @@ public sealed class MeasurementAttributeTests
     }
 
     [Fact]
-    public void MeasurementAttributesSupportNoNumberConstraints()
+    public void MeasurementAttributesHaveMeasurementSettings()
     {
         var attribute = AttributeDefinition.CreateMeasurement(NetWeight, MeasurementFamilies.Weight).Value;
 
-        attribute.SetRange(0m, 10m).Errors.ShouldHaveSingleItem().Code.ShouldBe("attribute.constraint_not_supported");
+        attribute.Settings.ShouldBeOfType<MeasurementSettings>();
     }
 }

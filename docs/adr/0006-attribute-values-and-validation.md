@@ -1,6 +1,6 @@
 # 0006. Attribute values and validation
 
-- **Status:** Accepted
+- **Status:** Accepted. The constraints section is superseded by [0009](0009-attribute-settings-per-type.md).
 - **Date:** 2026-10-21
 
 ## Context

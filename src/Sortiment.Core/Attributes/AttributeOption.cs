@@ -3,7 +3,7 @@ namespace Sortiment.Core.Attributes;
 /// <summary>
 /// One of the values a <see cref="AttributeType.SingleSelect"/> or <see cref="AttributeType.MultiSelect"/>
 /// attribute can take, for example <c>red</c> for the attribute <c>color</c>.
-/// Options are created through <see cref="AttributeDefinition.AddOption"/>.
+/// Options are created through <see cref="SelectSettings.AddOption"/>.
 /// </summary>
 public sealed class AttributeOption
 {

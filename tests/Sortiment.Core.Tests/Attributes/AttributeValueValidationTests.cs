@@ -86,7 +86,7 @@ public sealed class AttributeValueValidationTests
     public void TextLongerThanTheMaxLengthIsRejected()
     {
         var attribute = Create(AttributeType.Text);
-        attribute.SetMaxLength(5);
+        attribute.SettingsAs<TextSettings>().SetMaxLength(5);
 
         attribute.Validate(new TextValue("12345"), ValueScope.Global).IsSuccess.ShouldBeTrue();
         attribute.Validate(new TextValue("123456"), ValueScope.Global).Errors.ShouldHaveSingleItem().Code
@@ -97,7 +97,7 @@ public sealed class AttributeValueValidationTests
     public void LengthIsCountedInCodePoints()
     {
         var attribute = Create(AttributeType.Text);
-        attribute.SetMaxLength(3);
+        attribute.SettingsAs<TextSettings>().SetMaxLength(3);
 
         attribute.Validate(new TextValue("a😀b"), ValueScope.Global).IsSuccess.ShouldBeTrue();
     }
@@ -106,7 +106,7 @@ public sealed class AttributeValueValidationTests
     public void ANumberOutsideTheRangeIsRejected()
     {
         var attribute = Create(AttributeType.Number);
-        attribute.SetRange(0m, 10m);
+        attribute.SettingsAs<NumberSettings>().SetRange(0m, 10m);
 
         attribute.Validate(new NumberValue(0m), ValueScope.Global).IsSuccess.ShouldBeTrue();
         attribute.Validate(new NumberValue(10m), ValueScope.Global).IsSuccess.ShouldBeTrue();
@@ -124,7 +124,7 @@ public sealed class AttributeValueValidationTests
     public void DecimalPlacesAreCountedWithoutTrailingZeros(string number, bool valid)
     {
         var attribute = Create(AttributeType.Number);
-        attribute.SetDecimalPlaces(1);
+        attribute.SettingsAs<NumberSettings>().SetDecimalPlaces(1);
 
         var result = attribute.Validate(
             new NumberValue(decimal.Parse(number, CultureInfo.InvariantCulture)),
@@ -137,7 +137,7 @@ public sealed class AttributeValueValidationTests
     public void ZeroDecimalPlacesAllowsWholeNumbersOnly()
     {
         var attribute = Create(AttributeType.Number);
-        attribute.SetDecimalPlaces(0);
+        attribute.SettingsAs<NumberSettings>().SetDecimalPlaces(0);
 
         attribute.Validate(new NumberValue(3m), ValueScope.Global).IsSuccess.ShouldBeTrue();
         var error = attribute.Validate(new NumberValue(3.5m), ValueScope.Global).Errors.ShouldHaveSingleItem();
@@ -149,8 +149,8 @@ public sealed class AttributeValueValidationTests
     public void ANumberCanBreakSeveralConstraintsAtOnce()
     {
         var attribute = Create(AttributeType.Number);
-        attribute.SetRange(0m, 10m);
-        attribute.SetDecimalPlaces(0);
+        attribute.SettingsAs<NumberSettings>().SetRange(0m, 10m);
+        attribute.SettingsAs<NumberSettings>().SetDecimalPlaces(0);
 
         attribute.Validate(new NumberValue(10.5m), ValueScope.Global).Errors.Select(error => error.Code)
             .ShouldBe(["value.above_maximum", "value.too_many_decimals"]);
@@ -160,7 +160,7 @@ public sealed class AttributeValueValidationTests
     public void ASingleSelectValueMustBeAnOptionOfTheAttribute()
     {
         var attribute = Create(AttributeType.SingleSelect);
-        var red = attribute.AddOption(AttributeOptionCode.Parse("red")).Value;
+        var red = attribute.SettingsAs<SelectSettings>().AddOption(AttributeOptionCode.Parse("red")).Value;
 
         attribute.Validate(new SingleSelectValue(red.Id), ValueScope.Global).IsSuccess.ShouldBeTrue();
         attribute.Validate(new SingleSelectValue(AttributeOptionId.New()), ValueScope.Global).Errors
@@ -171,8 +171,8 @@ public sealed class AttributeValueValidationTests
     public void AMultiSelectValueReportsEveryUnknownAndDuplicateOption()
     {
         var attribute = Create(AttributeType.MultiSelect);
-        var red = attribute.AddOption(AttributeOptionCode.Parse("red")).Value;
-        var blue = attribute.AddOption(AttributeOptionCode.Parse("blue")).Value;
+        var red = attribute.SettingsAs<SelectSettings>().AddOption(AttributeOptionCode.Parse("red")).Value;
+        var blue = attribute.SettingsAs<SelectSettings>().AddOption(AttributeOptionCode.Parse("blue")).Value;
         var unknown = AttributeOptionId.New();
 
         var result = attribute.Validate(
@@ -224,7 +224,7 @@ public sealed class AttributeValueValidationTests
     public void ValidateReportsScopeAndContentErrorsTogetherWithTheScopeAsContext()
     {
         var attribute = Create(AttributeType.Text, isScopable: true);
-        attribute.SetMaxLength(3);
+        attribute.SettingsAs<TextSettings>().SetMaxLength(3);
 
         var result = attribute.Validate(new TextValue("Too long"), ValueScope.For(Swedish, Web));
 

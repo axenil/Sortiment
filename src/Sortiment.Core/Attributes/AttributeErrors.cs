@@ -16,24 +16,12 @@ internal static class AttributeErrors
                 $"Attribute '{attribute}' is an identifier, so it cannot be scopable.")
             .WithContext(ErrorContextKeys.Attribute, attribute.Value);
 
-    public static ResultError OptionsNotSupported(AttributeCode attribute, AttributeType type) =>
-        new ResultError(
-                "attribute.options_not_supported",
-                $"Attribute '{attribute}' has type {type}. Only select attributes have options.")
-            .WithContext(ErrorContextKeys.Attribute, attribute.Value);
-
     public static ResultError OptionAlreadyExists(AttributeCode attribute, AttributeOptionCode option) =>
         new ResultError(
                 "attribute.option_already_exists",
                 $"Attribute '{attribute}' already has an option '{option}'.")
             .WithContext(ErrorContextKeys.Attribute, attribute.Value)
             .WithContext(ErrorContextKeys.Option, option.Value);
-
-    public static ResultError ConstraintNotSupported(AttributeCode attribute, AttributeType type, string constraint) =>
-        new ResultError(
-                "attribute.constraint_not_supported",
-                $"Attribute '{attribute}' has type {type}, which does not support {constraint}.")
-            .WithContext(ErrorContextKeys.Attribute, attribute.Value);
 
     public static ResultError InvalidMaxLength(AttributeCode attribute, int maxLength) =>
         new ResultError(
@@ -50,7 +38,7 @@ internal static class AttributeErrors
     public static ResultError InvalidDecimalPlaces(AttributeCode attribute, int decimalPlaces) =>
         new ResultError(
                 "attribute.invalid_decimal_places",
-                $"The decimal places of attribute '{attribute}' must be between 0 and {AttributeDefinition.MaxDecimalPlaces}, but was {decimalPlaces}.")
+                $"The decimal places of attribute '{attribute}' must be between 0 and {NumberSettings.MaxDecimalPlaces}, but was {decimalPlaces}.")
             .WithContext(ErrorContextKeys.Attribute, attribute.Value);
 
     public static ResultError InvalidMaxCount(AttributeCode attribute, int maxCount) =>
