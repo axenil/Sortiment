@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Sortiment.Core\Sortiment.Core.csproj" />
+  </ItemGroup>
+
+</Project>

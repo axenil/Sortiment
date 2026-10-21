@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>A flexible, typed product model for .NET: attributes, families, variants, localized and channel-scoped values, validation and completeness.</Description>
+  </PropertyGroup>
+
+</Project>
