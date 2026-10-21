@@ -32,11 +32,13 @@ public sealed class ResultErrorTests
 
         original.Context.ShouldBeEmpty();
         withContext.Code.ShouldBe("test.code");
-        withContext.Context.ShouldBe(new Dictionary<string, string>
-        {
-            [ErrorContextKeys.Attribute] = "color",
-            [ErrorContextKeys.Value] = "Red",
-        });
+        withContext.Context.ShouldBe(
+            new Dictionary<string, string>
+            {
+                [ErrorContextKeys.Attribute] = "color",
+                [ErrorContextKeys.Value] = "Red",
+            },
+            ignoreOrder: true);
     }
 
     [Fact]
