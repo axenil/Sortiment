@@ -12,14 +12,14 @@ Sortiment is a lightweight, open-source **PIM (Product Information Management)**
 
 | Step | Packages | Useful on its own as |
 |---|---|---|
-| 1 | `Sortiment.Core` | A flexible, typed product model: attributes, families, variants, localized and channel-scoped values, validation, completeness |
+| 1 | `Sortiment.Core` | A flexible, typed product model: attributes, families, variants, localized and channel-scoped values, assets (images and files), validation, completeness |
 | 2 | `Sortiment.Import.*` | A declarative import/mapping engine (CSV, Excel, JSON → any target) with validation and dry-run diffs |
-| 3 | `Sortiment.Storage.PostgreSql`, `Sortiment.Api` | A headless PIM backend |
+| 3 | `Sortiment.Storage.PostgreSql`, `Sortiment.FileStorage.FileSystem`, `Sortiment.Api` | A headless PIM backend, including upload and storage of product images and files |
 | 4 | `Sortiment.Admin` | A complete PIM with a Blazor admin UI. Start with an MVP: manage families and attributes, browse and edit products, see import status. |
 | 5 | `Sortiment.Feeds.*` | Validated channel feeds (Google Merchant, PriceRunner, …) |
 | 6 | `Sortiment.Excel` | Excel round-trip for bulk editing large numbers of products. Builds on the Excel reader from step 2. |
 | 7 | `Sortiment.Enrichment` | AI-assisted enrichment (descriptions, attribute extraction, translation) |
-| 8 | Extras | Workflow, DAM, versioning, permissions |
+| 8 | Extras | Workflow, advanced DAM (renditions, usage rights workflows, automatic linking rules, connectors to external DAM systems), versioning, permissions. Basic asset handling is part of steps 1 and 3. |
 
 **Status:** early development. Work on steps 1–2 first. Getting the product model in `Sortiment.Core` right is the top priority, because it is the most expensive thing to change later.
 
@@ -65,10 +65,10 @@ dotnet format --verify-no-changes
 
 1. **Dependencies point inward.** `Sortiment.Core` depends on nothing in this repo. Nothing may depend on `Api` or `Admin`. Architecture tests enforce this.
 2. **The core is pure.** `Sortiment.Core` has no I/O, no EF Core, no ASP.NET Core and no NuGet package dependencies. It may use anything in the .NET base class library (for example `System.Text.Json`). Build-only tools that add no runtime dependency, such as MinVer, are allowed. Core does not log and does not use `IOptions`, so principles 14 and 15 apply to the packages around it. All I/O (database, files, HTTP, AI services) lives in adapter packages at the edges.
-3. **Tools target abstractions, not the PIM.** Import writes to an `IProductTarget` and feeds read from an `IProductSource`. Both interfaces are defined in `Sortiment.Core`, so storage can implement them without depending on Import or Feeds. The Sortiment PIM is just one implementation. Every package must be usable without Storage, Api or Admin. Depending on `Sortiment.Core` is fine, since it has no dependencies of its own. Likewise, the admin UI talks to Sortiment **only through the public API**, like any external client, so everything the admin can do, an integration can do too.
+3. **Tools target abstractions, not the PIM.** Import writes to an `IProductTarget`, feeds read from an `IProductSource`, and file contents are saved and read through an `IFileStorage`. These interfaces are defined in `Sortiment.Core`, so storage adapters can implement them without depending on Import or Feeds. The Sortiment PIM is just one implementation. Every package must be usable without Storage, Api or Admin. Depending on `Sortiment.Core` is fine, since it has no dependencies of its own. Likewise, the admin UI talks to Sortiment **only through the public API**, like any external client, so everything the admin can do, an integration can do too.
 4. **Rich domain model (DDD-light).** Domain types such as `Product`, `Family` and `AttributeDefinition` enforce their own invariants (for example, a value must match its attribute's type). They expose behavior through methods, not public setters. Business rules live in the domain, not in services or endpoints.
 5. **Plain application services.** Use cases are explicit service classes (for example `ProductService`) called directly from Minimal API endpoints. No mediator, CQRS dispatcher or other hidden indirection.
-6. **Strongly-typed IDs.** Every entity ID is its own `readonly record struct` (for example `ProductId`) wrapping a time-ordered `Guid` v7 (`Guid.CreateVersion7()`). IDs are generated in code, not by the database. Definition entities (attributes, attribute options, families, channels, categories, product models) also have an immutable, validated code (for example `AttributeCode`), which imports, feeds and the API use to refer to them. Products have a unique, changeable `Sku`. Internal references always use IDs. See [ADR 0002](docs/adr/0002-entity-identity-ids-and-codes.md).
+6. **Strongly-typed IDs.** Every entity ID is its own `readonly record struct` (for example `ProductId`) wrapping a time-ordered `Guid` v7 (`Guid.CreateVersion7()`). IDs are generated in code, not by the database. Definition entities (attributes, attribute options, families, channels, categories, product models, asset families) also have an immutable, validated code (for example `AttributeCode`), which imports, feeds and the API use to refer to them. Assets have one too, unique within their asset family ([ADR 0008](docs/adr/0008-assets.md)). Products have a unique, changeable `Sku`. Internal references always use IDs. See [ADR 0002](docs/adr/0002-entity-identity-ids-and-codes.md).
 7. **One responsibility per type and method.** Keep classes and methods small and focused. Prefer composition over inheritance.
 8. **No global or static mutable state.** No service locator. Dependencies come in through the constructor.
 9. **Async all the way for I/O,** and every async method accepts a `CancellationToken`.
