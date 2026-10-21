@@ -26,6 +26,11 @@ public static class ErrorContextKeys
     public const string Locale = "locale";
 
     /// <summary>
+    /// The code of the family the error relates to.
+    /// </summary>
+    public const string Family = "family";
+
+    /// <summary>
     /// The code of the asset family the error relates to.
     /// </summary>
     public const string AssetFamily = "asset_family";
