@@ -26,6 +26,11 @@ public static class ErrorContextKeys
     public const string Locale = "locale";
 
     /// <summary>
+    /// The SKU of the product the error relates to.
+    /// </summary>
+    public const string Product = "product";
+
+    /// <summary>
     /// The code of the family the error relates to.
     /// </summary>
     public const string Family = "family";
