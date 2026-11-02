@@ -1,6 +1,6 @@
 # 0008. Assets
 
-- **Status:** Accepted
+- **Status:** Accepted. The file storage contract is amended by [0014](0014-file-storage-contract.md).
 - **Date:** 2026-10-21
 
 ## Context
