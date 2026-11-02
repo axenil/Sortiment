@@ -1,3 +1,4 @@
+using Sortiment.Core.Attributes;
 using Sortiment.Core.Channels;
 using Sortiment.Core.Values;
 
@@ -20,5 +21,27 @@ public sealed class ValueScopeTests
         ValueScope.ForLocale(Swedish).ShouldBe(new ValueScope(Swedish, null));
         ValueScope.ForChannel(Web).ShouldBe(new ValueScope(null, Web));
         ValueScope.For(Swedish, Web).ShouldBe(new ValueScope(Swedish, Web));
+    }
+
+    [Theory]
+    [InlineData(false, false, false, false)]
+    [InlineData(true, false, true, false)]
+    [InlineData(false, true, false, true)]
+    [InlineData(true, true, true, true)]
+    public void ForAttributeKeepsOnlyThePartsTheAttributeVariesBy(
+        bool isLocalizable,
+        bool isScopable,
+        bool expectLocale,
+        bool expectChannel)
+    {
+        var attribute = AttributeDefinition.Create(
+                AttributeCode.Parse("description"),
+                AttributeType.Text,
+                isLocalizable,
+                isScopable)
+            .Value;
+
+        ValueScope.ForAttribute(attribute, Swedish, Web).ShouldBe(
+            new ValueScope(expectLocale ? Swedish : null, expectChannel ? Web : null));
     }
 }

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Sortiment.Core.Attributes;
+using Sortiment.Core.Channels;
 
 namespace Sortiment.Core.Families;
 
@@ -67,6 +68,22 @@ public sealed class FamilySchema
 
         return Result.Success(new FamilySchema(family, family.Attributes.Select(id => available[id]).ToArray()));
     }
+
+    /// <summary>
+    /// Gets the definitions of the attributes the family requires for a channel, in the family's attribute order.
+    /// </summary>
+    /// <remarks>
+    /// Like <see cref="Attributes"/>, this leaves out attributes that were added to the family after the schema was
+    /// created, even if the channel requires them, because the schema has no definition for them.
+    /// </remarks>
+    /// <param name="channel">The channel.</param>
+    /// <returns>The required attributes. Empty if the channel has no requirements.</returns>
+    public IReadOnlyList<AttributeDefinition> RequiredAttributes(ChannelId channel) =>
+        Family.RequiredAttributes(channel)
+            .Where(_attributesById.ContainsKey)
+            .Select(id => _attributesById[id])
+            .ToList()
+            .AsReadOnly();
 
     /// <summary>
     /// Finds one of the family's attributes by ID.

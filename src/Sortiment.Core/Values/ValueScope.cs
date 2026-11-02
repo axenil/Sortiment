@@ -1,3 +1,4 @@
+using Sortiment.Core.Attributes;
 using Sortiment.Core.Channels;
 
 namespace Sortiment.Core.Values;
@@ -48,5 +49,21 @@ public sealed record ValueScope(Locale? Locale, ChannelId? ChannelId)
         ArgumentNullException.ThrowIfNull(locale);
 
         return new(locale, channelId);
+    }
+
+    /// <summary>
+    /// Gets the scope that an attribute's value has in a locale of a channel: the locale only if the attribute is
+    /// localizable, and the channel only if it is scopable.
+    /// </summary>
+    /// <param name="attribute">The attribute.</param>
+    /// <param name="locale">The locale.</param>
+    /// <param name="channelId">The channel.</param>
+    /// <returns>The scope, for example <see cref="Global"/> for an attribute that is neither.</returns>
+    public static ValueScope ForAttribute(AttributeDefinition attribute, Locale locale, ChannelId channelId)
+    {
+        ArgumentNullException.ThrowIfNull(attribute);
+        ArgumentNullException.ThrowIfNull(locale);
+
+        return new(attribute.IsLocalizable ? locale : null, attribute.IsScopable ? channelId : null);
     }
 }

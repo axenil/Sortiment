@@ -1,4 +1,5 @@
 using Sortiment.Core.Attributes;
+using Sortiment.Core.Channels;
 using Sortiment.Core.Families;
 using Sortiment.Core.Tests.Fixtures;
 
@@ -71,6 +72,35 @@ public sealed class FamilySchemaTests
         schema.FindAttribute(_material.Id).ShouldBeNull();
         FamilySchema.Create(_family, [_name, _description, _material]).Value.FindAttribute(_material.Id)
             .ShouldBeSameAs(_material);
+    }
+
+    [Fact]
+    public void RequiredAttributesArePerChannelInFamilyOrder()
+    {
+        var ecommerce = ChannelId.New();
+        var print = ChannelId.New();
+        _family.RequireAttribute(_description, ecommerce).ShouldSucceed();
+        _family.RequireAttribute(_name, ecommerce).ShouldSucceed();
+        _family.RequireAttribute(_description, print).ShouldSucceed();
+
+        var schema = FamilySchema.Create(_family, [_name, _description]).Value;
+
+        schema.RequiredAttributes(ecommerce).ShouldBe([_name, _description]);
+        schema.RequiredAttributes(print).ShouldBe([_description]);
+        schema.RequiredAttributes(ChannelId.New()).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void RequiredAttributesLeaveOutAttributesAddedAfterTheSchemaWasCreated()
+    {
+        var ecommerce = ChannelId.New();
+        _family.RequireAttribute(_name, ecommerce).ShouldSucceed();
+        var schema = FamilySchema.Create(_family, [_name, _description]).Value;
+
+        _family.AddAttribute(_material).ShouldSucceed();
+        _family.RequireAttribute(_material, ecommerce).ShouldSucceed();
+
+        schema.RequiredAttributes(ecommerce).ShouldBe([_name]);
     }
 
     private static AttributeDefinition Attribute(string code) =>
