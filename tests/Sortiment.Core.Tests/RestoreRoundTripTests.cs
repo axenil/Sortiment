@@ -77,6 +77,30 @@ public sealed class RestoreRoundTripTests
     }
 
     [Fact]
+    public void FamilyVariantsRoundTrip()
+    {
+        var familyVariant = FamilyVariant.Create(
+                FamilyVariantCode.Parse("by_color_and_size"),
+                _catalog.TShirtSchema(),
+                [_catalog.Color.Code, _catalog.Size.Code],
+                [_catalog.Gtin.Code, _catalog.Weight.Code])
+            .Value;
+
+        var restored = FamilyVariant.Restore(
+            familyVariant.Id,
+            familyVariant.Code,
+            familyVariant.FamilyId,
+            familyVariant.Axes,
+            familyVariant.VariantAttributes);
+
+        restored.Id.ShouldBe(familyVariant.Id);
+        restored.Code.ShouldBe(familyVariant.Code);
+        restored.FamilyId.ShouldBe(familyVariant.FamilyId);
+        restored.Axes.ShouldBe(familyVariant.Axes);
+        restored.VariantAttributes.ShouldBe(familyVariant.VariantAttributes);
+    }
+
+    [Fact]
     public void ProductsRoundTrip()
     {
         var schema = _catalog.TShirtSchema();
