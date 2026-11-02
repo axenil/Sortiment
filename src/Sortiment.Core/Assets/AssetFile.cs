@@ -61,29 +61,24 @@ public sealed record AssetFile
     /// <summary>
     /// Describes a stored file.
     /// </summary>
-    /// <param name="storageKey">The key of the stored file.</param>
+    /// <param name="content">
+    /// The stored content, as returned by <see cref="IFileStorage.SaveAsync"/> or restored from storage.
+    /// </param>
     /// <param name="fileName">The original file name, without a directory.</param>
     /// <param name="mediaType">The media type of the content.</param>
-    /// <param name="size">The size in bytes.</param>
-    /// <param name="checksum">The SHA-256 checksum of the content.</param>
     /// <param name="dimensions">The dimensions of an image, if known.</param>
     /// <returns>
     /// The file, or the errors <c>asset_file.file_name_empty</c>, <c>asset_file.invalid_file_name</c> and
     /// <c>asset_file.empty_file</c>.
     /// </returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="size"/> is negative.</exception>
     public static Result<AssetFile> Create(
-        StorageKey storageKey,
+        StoredFile content,
         string? fileName,
         MediaType mediaType,
-        long size,
-        FileChecksum checksum,
         ImageDimensions? dimensions = null)
     {
-        ArgumentNullException.ThrowIfNull(storageKey);
+        ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(mediaType);
-        ArgumentNullException.ThrowIfNull(checksum);
-        ArgumentOutOfRangeException.ThrowIfNegative(size);
 
         var errors = new List<ResultError>();
         if (string.IsNullOrWhiteSpace(fileName))
@@ -95,13 +90,13 @@ public sealed record AssetFile
             errors.Add(AssetErrors.InvalidFileName(fileName));
         }
 
-        if (size == 0)
+        if (content.Size == 0)
         {
             errors.Add(AssetErrors.EmptyFile());
         }
 
         return errors.Count == 0
-            ? Result.Success(new AssetFile(storageKey, fileName!, mediaType, size, checksum, dimensions))
+            ? Result.Success(new AssetFile(content.Key, fileName!, mediaType, content.Size, content.Checksum, dimensions))
             : Result.Failure<AssetFile>(errors);
     }
 
