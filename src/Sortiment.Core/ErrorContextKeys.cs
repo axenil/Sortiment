@@ -45,6 +45,11 @@ public static class ErrorContextKeys
     public const string Product = "product";
 
     /// <summary>
+    /// The code of the product model the error relates to.
+    /// </summary>
+    public const string ProductModel = "product_model";
+
+    /// <summary>
     /// The code of the family the error relates to.
     /// </summary>
     public const string Family = "family";

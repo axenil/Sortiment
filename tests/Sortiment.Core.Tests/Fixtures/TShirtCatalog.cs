@@ -48,6 +48,13 @@ internal sealed class TShirtCatalog
         TShirts.RequireAttribute(Color, Ecommerce.Id).ShouldSucceed();
         TShirts.RequireAttribute(Name, Print.Id).ShouldSucceed();
 
+        ByColorAndSize = FamilyVariant.Create(
+                FamilyVariantCode.Parse("by_color_and_size"),
+                TShirtSchema(),
+                [Color.Code, Size.Code],
+                [Gtin.Code, Weight.Code])
+            .Value;
+
         Accessories = Family.Create(FamilyCode.Parse("accessories")).Value;
         Accessories.AddAttribute(Name).ShouldSucceed();
         Accessories.AddAttribute(Warranty).ShouldSucceed();
@@ -87,9 +94,16 @@ internal sealed class TShirtCatalog
 
     public Family Accessories { get; }
 
+    /// <summary>
+    /// Gets the t-shirt family variant: color and size are the axes, and the GTIN and weight are set per variant.
+    /// </summary>
+    public FamilyVariant ByColorAndSize { get; }
+
     public IReadOnlyList<AttributeDefinition> AllAttributes => [Name, Description, Color, Size, Weight, Gtin, Warranty];
 
     public FamilySchema TShirtSchema() => FamilySchema.Create(TShirts, AllAttributes).Value;
 
     public FamilySchema AccessorySchema() => FamilySchema.Create(Accessories, AllAttributes).Value;
+
+    public VariantSchema ColorAndSizeSchema() => new(TShirtSchema(), ByColorAndSize);
 }
