@@ -68,19 +68,20 @@ public sealed class RestoreRoundTripTests
     {
         var schema = _catalog.TShirtSchema();
         var product = Product.Create(Sku.Parse("TS-001"), schema).Value;
-        product.SetValue(schema, AttributeCode.Parse("name"), ValueScope.ForLocale(Swedish), new TextValue("Linneskjorta"));
+        product.SetValue(schema, AttributeCode.Parse("name"), ValueScope.ForLocale(Swedish), new TextValue("Linneskjorta")).ShouldSucceed();
         product.SetValue(
             schema,
             AttributeCode.Parse("description"),
             ValueScope.For(English, _catalog.Ecommerce.Id),
-            new TextValue("A linen shirt."));
-        product.SetValue(schema, AttributeCode.Parse("color"), ValueScope.Global, new SingleSelectValue(_catalog.Red.Id));
+            new TextValue("A linen shirt.")).ShouldSucceed();
+        product.SetValue(schema, AttributeCode.Parse("color"), ValueScope.Global, new SingleSelectValue(_catalog.Red.Id)).ShouldSucceed();
         product.SetValue(
             schema,
             AttributeCode.Parse("weight"),
             ValueScope.Global,
-            new MeasurementValue(180m, UnitCode.Parse("g")));
+            new MeasurementValue(180m, UnitCode.Parse("g"))).ShouldSucceed();
         product.Disable();
+        product.Values.Count.ShouldBe(4);
 
         var restored = Product.Restore(product.Id, product.Sku, product.FamilyId, product.IsEnabled, product.Values);
 
@@ -113,18 +114,18 @@ public sealed class RestoreRoundTripTests
     private List<AttributeDefinition> AttributesOfEveryType()
     {
         var warranty = _catalog.Warranty;
-        warranty.SettingsAs<NumberSettings>().SetRange(0m, 10m);
-        warranty.SettingsAs<NumberSettings>().SetDecimalPlaces(0);
+        warranty.SettingsAs<NumberSettings>().SetRange(0m, 10m).ShouldSucceed();
+        warranty.SettingsAs<NumberSettings>().SetDecimalPlaces(0).ShouldSucceed();
 
         var materials = AttributeDefinition.Create(AttributeCode.Parse("materials"), AttributeType.MultiSelect).Value;
-        materials.SettingsAs<SelectSettings>().AddOption(AttributeOptionCode.Parse("linen"));
-        materials.SettingsAs<SelectSettings>().AddOption(AttributeOptionCode.Parse("cotton"));
+        materials.SettingsAs<SelectSettings>().AddOption(AttributeOptionCode.Parse("linen")).ShouldSucceed();
+        materials.SettingsAs<SelectSettings>().AddOption(AttributeOptionCode.Parse("cotton")).ShouldSucceed();
 
         var images = AttributeDefinition.CreateAssetCollection(
             AttributeCode.Parse("images"),
             Packshots(),
             isScopable: true).Value;
-        images.SettingsAs<AssetCollectionSettings>().SetMaxCount(8);
+        images.SettingsAs<AssetCollectionSettings>().SetMaxCount(8).ShouldSucceed();
 
         var attributes = new List<AttributeDefinition>(_catalog.AllAttributes)
         {

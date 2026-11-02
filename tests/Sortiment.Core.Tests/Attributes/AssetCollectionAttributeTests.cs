@@ -1,5 +1,6 @@
 using Sortiment.Core.Assets;
 using Sortiment.Core.Attributes;
+using Sortiment.Core.Tests.Fixtures;
 using Sortiment.Core.Values;
 using static Sortiment.Core.Tests.Assets.AssetTestData;
 
@@ -95,7 +96,7 @@ public sealed class AssetCollectionAttributeTests
     public void MoreAssetsThanTheMaxCountAreRejected()
     {
         var attribute = Create();
-        attribute.SettingsAs<AssetCollectionSettings>().SetMaxCount(1);
+        attribute.SettingsAs<AssetCollectionSettings>().SetMaxCount(1).ShouldSucceed();
 
         attribute.Validate(new AssetCollectionValue([Front]), ValueScope.Global).IsSuccess.ShouldBeTrue();
         attribute.Validate(new AssetCollectionValue([Front, Back]), ValueScope.Global).Errors.ShouldHaveSingleItem()

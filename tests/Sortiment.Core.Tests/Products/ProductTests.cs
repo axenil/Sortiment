@@ -68,8 +68,8 @@ public sealed class ProductTests
         var product = NewProduct();
         var schema = _catalog.TShirtSchema();
 
-        product.SetValue(schema, Code("color"), ValueScope.Global, new SingleSelectValue(_catalog.Red.Id));
-        product.SetValue(schema, Code("color"), ValueScope.Global, new SingleSelectValue(_catalog.Blue.Id));
+        product.SetValue(schema, Code("color"), ValueScope.Global, new SingleSelectValue(_catalog.Red.Id)).ShouldSucceed();
+        product.SetValue(schema, Code("color"), ValueScope.Global, new SingleSelectValue(_catalog.Blue.Id)).ShouldSucceed();
 
         product.Values.ShouldHaveSingleItem().ShouldBe(
             new ProductValue(_catalog.Color.Id, ValueScope.Global, new SingleSelectValue(_catalog.Blue.Id)));
@@ -115,9 +115,9 @@ public sealed class ProductTests
     {
         var product = NewProduct();
         var schema = _catalog.TShirtSchema();
-        product.SetValue(schema, Code("weight"), ValueScope.Global, new MeasurementValue(180m, UnitCode.Parse("g")));
+        product.SetValue(schema, Code("weight"), ValueScope.Global, new MeasurementValue(180m, UnitCode.Parse("g"))).ShouldSucceed();
 
-        product.SetValue(schema, Code("weight"), ValueScope.Global, new MeasurementValue(1m, UnitCode.Parse("cm")));
+        product.SetValue(schema, Code("weight"), ValueScope.Global, new MeasurementValue(1m, UnitCode.Parse("cm"))).IsFailure.ShouldBeTrue();
 
         product.GetValue(_catalog.Weight.Id, ValueScope.Global)
             .ShouldBe(new MeasurementValue(180m, UnitCode.Parse("g")));
@@ -140,8 +140,8 @@ public sealed class ProductTests
     {
         var product = NewProduct();
         var schema = _catalog.TShirtSchema();
-        product.SetValue(schema, Code("name"), ValueScope.ForLocale(Swedish), new TextValue("Linneskjorta"));
-        product.SetValue(schema, Code("name"), ValueScope.ForLocale(English), new TextValue("Linen shirt"));
+        product.SetValue(schema, Code("name"), ValueScope.ForLocale(Swedish), new TextValue("Linneskjorta")).ShouldSucceed();
+        product.SetValue(schema, Code("name"), ValueScope.ForLocale(English), new TextValue("Linen shirt")).ShouldSucceed();
 
         product.RemoveValue(_catalog.Name.Id, ValueScope.ForLocale(Swedish)).ShouldBeTrue();
         product.RemoveValue(_catalog.Name.Id, ValueScope.ForLocale(Swedish)).ShouldBeFalse();
@@ -155,8 +155,8 @@ public sealed class ProductTests
     {
         var product = NewProduct();
         var schema = _catalog.TShirtSchema();
-        product.SetValue(schema, Code("name"), ValueScope.ForLocale(Swedish), new TextValue("Linneskjorta"));
-        product.SetValue(schema, Code("color"), ValueScope.Global, new SingleSelectValue(_catalog.Red.Id));
+        product.SetValue(schema, Code("name"), ValueScope.ForLocale(Swedish), new TextValue("Linneskjorta")).ShouldSucceed();
+        product.SetValue(schema, Code("color"), ValueScope.Global, new SingleSelectValue(_catalog.Red.Id)).ShouldSucceed();
 
         var removed = product.ChangeFamily(_catalog.AccessorySchema());
 
@@ -170,7 +170,7 @@ public sealed class ProductTests
     {
         var product = NewProduct();
         var schema = _catalog.TShirtSchema();
-        product.SetValue(schema, Code("gtin"), ValueScope.Global, new TextValue("07350053850019"));
+        product.SetValue(schema, Code("gtin"), ValueScope.Global, new TextValue("07350053850019")).ShouldSucceed();
 
         product.Validate(schema).IsSuccess.ShouldBeTrue();
     }
@@ -180,9 +180,9 @@ public sealed class ProductTests
     {
         var product = NewProduct();
         var schema = _catalog.TShirtSchema();
-        product.SetValue(schema, Code("name"), ValueScope.ForLocale(Swedish), new TextValue("Linneskjorta"));
+        product.SetValue(schema, Code("name"), ValueScope.ForLocale(Swedish), new TextValue("Linneskjorta")).ShouldSucceed();
 
-        _catalog.Name.SettingsAs<TextSettings>().SetMaxLength(5);
+        _catalog.Name.SettingsAs<TextSettings>().SetMaxLength(5).ShouldSucceed();
 
         var error = product.Validate(schema).Errors.ShouldHaveSingleItem();
         error.Code.ShouldBe("value.too_long");
@@ -195,9 +195,9 @@ public sealed class ProductTests
     {
         var product = NewProduct();
         var schema = _catalog.TShirtSchema();
-        product.SetValue(schema, Code("color"), ValueScope.Global, new SingleSelectValue(_catalog.Red.Id));
+        product.SetValue(schema, Code("color"), ValueScope.Global, new SingleSelectValue(_catalog.Red.Id)).ShouldSucceed();
 
-        _catalog.TShirts.RemoveAttribute(_catalog.Color.Id);
+        _catalog.TShirts.RemoveAttribute(_catalog.Color.Id).ShouldSucceed();
 
         product.Validate(schema).Errors.ShouldHaveSingleItem().Code.ShouldBe("product.attribute_not_in_family");
     }
@@ -224,7 +224,7 @@ public sealed class ProductTests
     [Fact]
     public void RestoreAcceptsValuesThatBreakATightenedConstraint()
     {
-        _catalog.Name.SettingsAs<TextSettings>().SetMaxLength(5);
+        _catalog.Name.SettingsAs<TextSettings>().SetMaxLength(5).ShouldSucceed();
 
         var product = Product.Restore(
             ProductId.New(),

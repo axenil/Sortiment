@@ -114,7 +114,7 @@ public sealed class CompletenessTests
     public void InvalidValuesStillCountAsFilled()
     {
         FillEcommerceRequirements();
-        _catalog.Name.SettingsAs<TextSettings>().SetMaxLength(3);
+        _catalog.Name.SettingsAs<TextSettings>().SetMaxLength(3).ShouldSucceed();
 
         _product.Validate(_schema).IsFailure.ShouldBeTrue();
         _product.CalculateCompleteness(_schema, _catalog.Ecommerce).IsComplete.ShouldBeTrue();
@@ -125,8 +125,8 @@ public sealed class CompletenessTests
     {
         FillEcommerceRequirements();
 
-        _catalog.TShirts.RequireAttribute(_catalog.Weight, _catalog.Ecommerce.Id);
-        _catalog.Ecommerce.AddLocale(Locale.Parse("fi-FI"));
+        _catalog.TShirts.RequireAttribute(_catalog.Weight, _catalog.Ecommerce.Id).ShouldSucceed();
+        _catalog.Ecommerce.AddLocale(Locale.Parse("fi-FI")).ShouldSucceed();
 
         var completeness = _product.CalculateCompleteness(_schema, _catalog.Ecommerce);
         completeness.ForLocale(Swedish)!.MissingAttributes.ShouldBe(Codes("weight"));

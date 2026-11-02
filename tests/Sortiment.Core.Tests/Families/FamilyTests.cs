@@ -1,6 +1,7 @@
 using Sortiment.Core.Attributes;
 using Sortiment.Core.Channels;
 using Sortiment.Core.Families;
+using Sortiment.Core.Tests.Fixtures;
 
 namespace Sortiment.Core.Tests.Families;
 
@@ -79,7 +80,7 @@ public sealed class FamilyTests
     public void AddAttributeRejectsAnAttributeThatIsAlreadyInTheFamily()
     {
         var family = Family.Create(TShirts).Value;
-        family.AddAttribute(_name);
+        family.AddAttribute(_name).ShouldSucceed();
 
         var error = family.AddAttribute(_name).Errors.ShouldHaveSingleItem();
 
@@ -93,9 +94,9 @@ public sealed class FamilyTests
     public void RemoveAttributeRemovesTheAttributeAndItsRequirements()
     {
         var family = FamilyWith(_name, _description);
-        family.RequireAttribute(_name, Ecommerce);
-        family.RequireAttribute(_description, Ecommerce);
-        family.RequireAttribute(_name, Print);
+        family.RequireAttribute(_name, Ecommerce).ShouldSucceed();
+        family.RequireAttribute(_description, Ecommerce).ShouldSucceed();
+        family.RequireAttribute(_name, Print).ShouldSucceed();
 
         family.RemoveAttribute(_name.Id).IsSuccess.ShouldBeTrue();
 
@@ -116,9 +117,9 @@ public sealed class FamilyTests
     {
         var family = FamilyWith(_name, _description, _material);
 
-        family.RequireAttribute(_name, Ecommerce);
-        family.RequireAttribute(_description, Ecommerce);
-        family.RequireAttribute(_name, Print);
+        family.RequireAttribute(_name, Ecommerce).ShouldSucceed();
+        family.RequireAttribute(_description, Ecommerce).ShouldSucceed();
+        family.RequireAttribute(_name, Print).ShouldSucceed();
 
         family.RequiredAttributes(Ecommerce).ShouldBe([_name.Id, _description.Id]);
         family.RequiredAttributes(Print).ShouldBe([_name.Id]);
@@ -130,8 +131,8 @@ public sealed class FamilyTests
     {
         var family = FamilyWith(_name, _description, _material);
 
-        family.RequireAttribute(_material, Ecommerce);
-        family.RequireAttribute(_name, Ecommerce);
+        family.RequireAttribute(_material, Ecommerce).ShouldSucceed();
+        family.RequireAttribute(_name, Ecommerce).ShouldSucceed();
 
         family.RequiredAttributes(Ecommerce).ShouldBe([_name.Id, _material.Id]);
     }
@@ -163,8 +164,8 @@ public sealed class FamilyTests
     public void UnrequireAttributeStopsRequiringIt()
     {
         var family = FamilyWith(_name, _description);
-        family.RequireAttribute(_name, Ecommerce);
-        family.RequireAttribute(_description, Ecommerce);
+        family.RequireAttribute(_name, Ecommerce).ShouldSucceed();
+        family.RequireAttribute(_description, Ecommerce).ShouldSucceed();
 
         family.UnrequireAttribute(_name.Id, Ecommerce);
         family.UnrequireAttribute(_material.Id, Ecommerce);
@@ -177,8 +178,8 @@ public sealed class FamilyTests
     public void RequirementsExposeEveryChannelWithoutAllowingChanges()
     {
         var family = FamilyWith(_name, _description);
-        family.RequireAttribute(_name, Ecommerce);
-        family.RequireAttribute(_description, Print);
+        family.RequireAttribute(_name, Ecommerce).ShouldSucceed();
+        family.RequireAttribute(_description, Print).ShouldSucceed();
 
         var requirements = family.Requirements;
         ((ISet<AttributeId>)requirements[Ecommerce]).Add(_description.Id);
@@ -195,7 +196,7 @@ public sealed class FamilyTests
         var family = Family.Create(TShirts).Value;
         foreach (var attribute in attributes)
         {
-            family.AddAttribute(attribute);
+            family.AddAttribute(attribute).ShouldSucceed();
         }
 
         return family;
