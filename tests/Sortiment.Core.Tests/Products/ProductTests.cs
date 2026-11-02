@@ -202,6 +202,54 @@ public sealed class ProductTests
         product.Validate(schema).Errors.ShouldHaveSingleItem().Code.ShouldBe("product.attribute_not_in_family");
     }
 
+    [Fact]
+    public void RestoreKeepsTheStoredState()
+    {
+        var id = ProductId.New();
+        ProductValue[] values =
+        [
+            new(_catalog.Name.Id, ValueScope.ForLocale(Swedish), new TextValue("Linneskjorta")),
+            new(_catalog.Color.Id, ValueScope.Global, new SingleSelectValue(_catalog.Red.Id)),
+        ];
+
+        var product = Product.Restore(id, _sku, _catalog.TShirts.Id, isEnabled: false, values);
+
+        product.Id.ShouldBe(id);
+        product.Sku.ShouldBe(_sku);
+        product.FamilyId.ShouldBe(_catalog.TShirts.Id);
+        product.IsEnabled.ShouldBeFalse();
+        product.Values.ShouldBe(values, ignoreOrder: true);
+    }
+
+    [Fact]
+    public void RestoreAcceptsValuesThatBreakATightenedConstraint()
+    {
+        _catalog.Name.SettingsAs<TextSettings>().SetMaxLength(5);
+
+        var product = Product.Restore(
+            ProductId.New(),
+            _sku,
+            _catalog.TShirts.Id,
+            isEnabled: true,
+            [new(_catalog.Name.Id, ValueScope.ForLocale(Swedish), new TextValue("Linneskjorta"))]);
+
+        product.Validate(_catalog.TShirtSchema()).Errors.ShouldHaveSingleItem().Code.ShouldBe("value.too_long");
+    }
+
+    [Fact]
+    public void RestoreRejectsTwoValuesForTheSameAttributeAndScope()
+    {
+        Should.Throw<ArgumentException>(() => Product.Restore(
+            ProductId.New(),
+            _sku,
+            _catalog.TShirts.Id,
+            isEnabled: true,
+            [
+                new(_catalog.Color.Id, ValueScope.Global, new SingleSelectValue(_catalog.Red.Id)),
+                new(_catalog.Color.Id, ValueScope.Global, new SingleSelectValue(_catalog.Blue.Id)),
+            ]));
+    }
+
     private Product NewProduct() => Product.Create(_sku, _catalog.TShirtSchema()).Value;
 
     private static AttributeCode Code(string value) => AttributeCode.Parse(value);

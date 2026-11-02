@@ -65,6 +65,44 @@ public sealed class Product
     }
 
     /// <summary>
+    /// Restores a product from stored state (ADR 0011). Values are not validated against their attributes, so values
+    /// that break a constraint tightened later can still be loaded; <see cref="Validate"/> reports them.
+    /// </summary>
+    /// <param name="id">The product's ID.</param>
+    /// <param name="sku">The product's SKU.</param>
+    /// <param name="familyId">The identity of the product's family.</param>
+    /// <param name="isEnabled">Whether the product is enabled.</param>
+    /// <param name="values">The product's values.</param>
+    /// <returns>The product.</returns>
+    /// <exception cref="ArgumentException">There is more than one value for the same attribute and scope.</exception>
+    public static Product Restore(
+        ProductId id,
+        Sku sku,
+        FamilyId familyId,
+        bool isEnabled,
+        IEnumerable<ProductValue> values)
+    {
+        ArgumentNullException.ThrowIfNull(sku);
+        ArgumentNullException.ThrowIfNull(values);
+
+        var product = new Product(id, sku, familyId) { IsEnabled = isEnabled };
+        foreach (var value in values)
+        {
+            ArgumentNullException.ThrowIfNull(value, nameof(values));
+            ArgumentNullException.ThrowIfNull(value.Scope, nameof(values));
+            ArgumentNullException.ThrowIfNull(value.Value, nameof(values));
+            if (!product._values.TryAdd((value.Attribute, value.Scope), value.Value))
+            {
+                throw new ArgumentException(
+                    $"Product '{sku}' has more than one value for attribute {value.Attribute} in the same scope.",
+                    nameof(values));
+            }
+        }
+
+        return product;
+    }
+
+    /// <summary>
     /// Changes the product's SKU, for example after an ERP migration or to correct its casing.
     /// </summary>
     /// <param name="sku">The new SKU.</param>
