@@ -235,7 +235,7 @@ public sealed class AttributeDefinition
     /// <returns>
     /// Success, or every problem found: errors from <see cref="ValidateScope"/>, <c>value.type_mismatch</c>, and the
     /// errors described by the attribute's <see cref="Settings"/> type.
-    /// Each error's context includes the attribute and, when present, the scope's locale and channel.
+    /// Each error's context includes the attribute and, when present, the scope's locale and channel ID.
     /// </returns>
     public Result Validate(AttributeValue value, ValueScope scope)
     {
@@ -342,7 +342,7 @@ public sealed class AttributeDefinition
 
         if (scope.ChannelId is { } channelId)
         {
-            error = error.WithContext(ErrorContextKeys.Channel, channelId.ToString());
+            error = error.WithContext(ErrorContextKeys.ChannelId, channelId.ToString());
         }
 
         return error;

@@ -254,7 +254,8 @@ public sealed class AttributeValueValidationTests
         result.Errors.ShouldAllBe(error =>
             error.Context[ErrorContextKeys.Attribute] == "attribute"
             && error.Context[ErrorContextKeys.Locale] == "sv-SE"
-            && error.Context[ErrorContextKeys.Channel] == Web.ToString());
+            && error.Context[ErrorContextKeys.ChannelId] == Web.ToString()
+            && !error.Context.ContainsKey(ErrorContextKeys.Channel));
     }
 
     private static AttributeDefinition Create(
