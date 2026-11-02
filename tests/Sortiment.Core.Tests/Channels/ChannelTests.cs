@@ -19,6 +19,30 @@ public sealed class ChannelTests
     }
 
     [Fact]
+    public void RestoreKeepsTheIdAndLocales()
+    {
+        var id = ChannelId.New();
+
+        var channel = Channel.Restore(id, Ecommerce, [English, Swedish]);
+
+        channel.Id.ShouldBe(id);
+        channel.Code.ShouldBe(Ecommerce);
+        channel.Locales.ShouldBe([English, Swedish]);
+    }
+
+    [Fact]
+    public void RestoreRejectsAChannelWithoutLocales()
+    {
+        Should.Throw<ArgumentException>(() => Channel.Restore(ChannelId.New(), Ecommerce, []));
+    }
+
+    [Fact]
+    public void RestoreRejectsDuplicateLocales()
+    {
+        Should.Throw<ArgumentException>(() => Channel.Restore(ChannelId.New(), Ecommerce, [Swedish, Swedish]));
+    }
+
+    [Fact]
     public void CreateRequiresAtLeastOneLocale()
     {
         var result = Channel.Create(Ecommerce, []);
