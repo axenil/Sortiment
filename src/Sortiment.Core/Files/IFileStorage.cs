@@ -5,8 +5,15 @@ namespace Sortiment.Core.Files;
 /// <c>Sortiment.FileStorage.FileSystem</c>.
 /// </summary>
 /// <remarks>
-/// Stored files are immutable: saving always creates a new file under a new key. Infrastructure failures, such as an
-/// unreachable storage service, are reported as exceptions.
+/// <para>
+/// Stored files are immutable: saving always creates a new file under a new key. Implementations generate the keys,
+/// and only ever resolve keys that are valid <see cref="StorageKey"/>s, so a key cannot point outside the storage.
+/// </para>
+/// <para>
+/// A missing file is the only expected failure, and is returned as a result when reading. Saving and deleting have no
+/// expected failures. Infrastructure failures, such as a full disk or an unreachable storage service, are reported as
+/// exceptions (ADR 0014).
+/// </para>
 /// </remarks>
 public interface IFileStorage
 {
@@ -19,8 +26,11 @@ public interface IFileStorage
     /// store it with the file.
     /// </param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>The key of the saved file.</returns>
-    Task<StorageKey> SaveAsync(Stream content, MediaType mediaType, CancellationToken cancellationToken);
+    /// <returns>
+    /// The key of the saved file, with the size and SHA-256 checksum of the bytes that were actually written.
+    /// Implementations measure both while writing; they never take them from the caller.
+    /// </returns>
+    Task<StoredFile> SaveAsync(Stream content, MediaType mediaType, CancellationToken cancellationToken);
 
     /// <summary>
     /// Opens a stored file for reading. The caller disposes the returned stream.

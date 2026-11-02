@@ -12,7 +12,7 @@ public sealed class AssetFileTests
     [Fact]
     public void CreateDescribesTheFile()
     {
-        var file = AssetFile.Create(Key, "TS001-Front.jpg", Jpeg, 2048, Checksum, new ImageDimensions(800, 600)).Value;
+        var file = AssetFile.Create(Content(2048), "TS001-Front.jpg", Jpeg, new ImageDimensions(800, 600)).Value;
 
         file.StorageKey.ShouldBe(Key);
         file.FileName.ShouldBe("TS001-Front.jpg");
@@ -25,7 +25,7 @@ public sealed class AssetFileTests
     [Fact]
     public void DimensionsAreOptional()
     {
-        AssetFile.Create(Key, "manual.pdf", MediaType.Parse("application/pdf"), 10, Checksum).Value.Dimensions
+        AssetFile.Create(Content(10), "manual.pdf", MediaType.Parse("application/pdf")).Value.Dimensions
             .ShouldBeNull();
     }
 
@@ -39,7 +39,7 @@ public sealed class AssetFileTests
     [InlineData("front​.jpg", "asset_file.invalid_file_name")]
     public void CreateRejectsInvalidFileNames(string? fileName, string expectedCode)
     {
-        AssetFile.Create(Key, fileName, Jpeg, 10, Checksum).Errors.ShouldHaveSingleItem().Code.ShouldBe(expectedCode);
+        AssetFile.Create(Content(10), fileName, Jpeg).Errors.ShouldHaveSingleItem().Code.ShouldBe(expectedCode);
     }
 
     [Fact]
@@ -47,21 +47,15 @@ public sealed class AssetFileTests
     {
         var fileName = new string('a', AssetFile.MaxFileNameLength - 3) + ".jpg";
 
-        AssetFile.Create(Key, fileName, Jpeg, 10, Checksum).Errors.ShouldHaveSingleItem().Code
+        AssetFile.Create(Content(10), fileName, Jpeg).Errors.ShouldHaveSingleItem().Code
             .ShouldBe("asset_file.invalid_file_name");
     }
 
     [Fact]
     public void CreateReportsAnEmptyFileTogetherWithAFileNameError()
     {
-        AssetFile.Create(Key, "", Jpeg, 0, Checksum).Errors.Select(error => error.Code)
+        AssetFile.Create(Content(0), "", Jpeg).Errors.Select(error => error.Code)
             .ShouldBe(["asset_file.file_name_empty", "asset_file.empty_file"]);
-    }
-
-    [Fact]
-    public void ANegativeSizeIsAProgrammingError()
-    {
-        Should.Throw<ArgumentOutOfRangeException>(() => AssetFile.Create(Key, "front.jpg", Jpeg, -1, Checksum));
     }
 
     [Fact]
@@ -70,4 +64,6 @@ public sealed class AssetFileTests
         Should.Throw<ArgumentOutOfRangeException>(() => new ImageDimensions(0, 600));
         Should.Throw<ArgumentOutOfRangeException>(() => new ImageDimensions(800, -1));
     }
+
+    private static StoredFile Content(long size) => new(Key, size, Checksum);
 }

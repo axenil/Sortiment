@@ -11,11 +11,12 @@ internal static class AssetTestData
         string fileName = "ts001-front.jpg",
         string? storageKey = null) =>
         AssetFile.Create(
-                new StorageKey(storageKey ?? Guid.NewGuid().ToString()),
+                new StoredFile(
+                    new StorageKey(storageKey ?? Guid.NewGuid().ToString()),
+                    size,
+                    FileChecksum.FromHash(new byte[32])),
                 fileName,
-                MediaType.Parse(mediaType),
-                size,
-                FileChecksum.FromHash(new byte[32]))
+                MediaType.Parse(mediaType))
             .Value;
 
     public static AssetFamily Packshots(long? maxFileSize = null) =>
