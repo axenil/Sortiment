@@ -95,6 +95,23 @@ public sealed class Asset
         return Result.Success(replaced);
     }
 
+    /// <summary>
+    /// Restores an asset from stored state (ADR 0011). The file is not checked against the family's file rules, so an
+    /// asset whose file breaks a rule that was tightened later can still be loaded.
+    /// </summary>
+    /// <param name="id">The asset's ID.</param>
+    /// <param name="familyId">The identity of the asset's family.</param>
+    /// <param name="code">The asset's code.</param>
+    /// <param name="file">The asset's file.</param>
+    /// <returns>The asset.</returns>
+    public static Asset Restore(AssetId id, AssetFamilyId familyId, AssetCode code, AssetFile file)
+    {
+        ArgumentNullException.ThrowIfNull(code);
+        ArgumentNullException.ThrowIfNull(file);
+
+        return new Asset(id, familyId, code, file);
+    }
+
     private static ResultError AddAssetContext(ResultError error, AssetCode code) =>
         error.WithContext(ErrorContextKeys.Asset, code.Value);
 }

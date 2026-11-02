@@ -21,6 +21,21 @@ public sealed class AssetTests
     }
 
     [Fact]
+    public void RestoreKeepsTheStoredStateEvenIfTheFileBreaksTheFamilysRules()
+    {
+        var id = AssetId.New();
+        var family = Packshots();
+        var file = File("application/pdf");
+
+        var asset = Asset.Restore(id, family.Id, Front, file);
+
+        asset.Id.ShouldBe(id);
+        asset.FamilyId.ShouldBe(family.Id);
+        asset.Code.ShouldBe(Front);
+        asset.File.ShouldBe(file);
+    }
+
+    [Fact]
     public void CreateRejectsAFileTheFamilyDoesNotAccept()
     {
         var error = Asset.Create(Packshots(), Front, File("application/pdf")).Errors.ShouldHaveSingleItem();

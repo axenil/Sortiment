@@ -19,6 +19,30 @@ public sealed class AssetFamilyTests
     }
 
     [Fact]
+    public void RestoreKeepsTheIdAndFileRules()
+    {
+        var id = AssetFamilyId.New();
+
+        var family = AssetFamily.Restore(id, Manuals, [MediaTypePattern.Parse("application/pdf")], 5_000_000);
+
+        family.Id.ShouldBe(id);
+        family.Code.ShouldBe(Manuals);
+        family.AllowedMediaTypes.ShouldBe([MediaTypePattern.Parse("application/pdf")]);
+        family.MaxFileSize.ShouldBe(5_000_000);
+    }
+
+    [Fact]
+    public void RestoreRejectsDuplicatePatternsAndAnInvalidMaxFileSize()
+    {
+        Should.Throw<ArgumentException>(() => AssetFamily.Restore(
+            AssetFamilyId.New(),
+            Manuals,
+            [MediaTypePattern.Parse("image/*"), MediaTypePattern.Parse("image/*")],
+            null));
+        Should.Throw<ArgumentException>(() => AssetFamily.Restore(AssetFamilyId.New(), Manuals, [], 0));
+    }
+
+    [Fact]
     public void AFamilyWithoutRulesAcceptsEveryFile()
     {
         var family = AssetFamily.Create(Manuals).Value;
