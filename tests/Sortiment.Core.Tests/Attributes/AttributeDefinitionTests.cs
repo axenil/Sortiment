@@ -23,6 +23,62 @@ public sealed class AttributeDefinitionTests
     }
 
     [Fact]
+    public void RestoreKeepsTheIdAndDefinition()
+    {
+        var id = AttributeId.New();
+
+        var attribute = AttributeDefinition.Restore(
+            id,
+            AttributeCode.Parse("description"),
+            AttributeType.TextArea,
+            isLocalizable: true,
+            isScopable: false);
+
+        attribute.Id.ShouldBe(id);
+        attribute.Code.ShouldBe(AttributeCode.Parse("description"));
+        attribute.Type.ShouldBe(AttributeType.TextArea);
+        attribute.IsLocalizable.ShouldBeTrue();
+        attribute.IsScopable.ShouldBeFalse();
+        attribute.SettingsAs<TextSettings>().MaxLength.ShouldBeNull();
+    }
+
+    [Fact]
+    public void RestoreRejectsALocalizableIdentifier()
+    {
+        Should.Throw<ArgumentException>(() => AttributeDefinition.Restore(
+            AttributeId.New(),
+            AttributeCode.Parse("gtin"),
+            AttributeType.Identifier,
+            isLocalizable: true,
+            isScopable: false));
+    }
+
+    [Fact]
+    public void RestoreOptionKeepsTheOptionIdAndOrder()
+    {
+        var settings = SelectAttribute().SettingsAs<SelectSettings>();
+        var blueId = AttributeOptionId.New();
+        var redId = AttributeOptionId.New();
+
+        settings.RestoreOption(blueId, Blue);
+        settings.RestoreOption(redId, Red);
+
+        settings.Options.Select(option => (option.Id, option.Code)).ShouldBe([(blueId, Blue), (redId, Red)]);
+    }
+
+    [Fact]
+    public void RestoreOptionRejectsARepeatedIdOrCode()
+    {
+        var settings = SelectAttribute().SettingsAs<SelectSettings>();
+        var id = AttributeOptionId.New();
+        settings.RestoreOption(id, Red);
+
+        Should.Throw<ArgumentException>(() => settings.RestoreOption(id, Blue));
+        Should.Throw<ArgumentException>(() => settings.RestoreOption(AttributeOptionId.New(), Red));
+        settings.Options.ShouldHaveSingleItem();
+    }
+
+    [Fact]
     public void CreateGivesEachAttributeANewId()
     {
         var first = AttributeDefinition.Create(Color, AttributeType.SingleSelect).Value;
@@ -157,4 +213,7 @@ public sealed class AttributeDefinitionTests
 
         ((ICollection<AttributeOption>)attribute.SettingsAs<SelectSettings>().Options).IsReadOnly.ShouldBeTrue();
     }
+
+    private static AttributeDefinition SelectAttribute() =>
+        AttributeDefinition.Create(Color, AttributeType.SingleSelect).Value;
 }

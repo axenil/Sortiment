@@ -26,6 +26,25 @@ public sealed class AssetCollectionAttributeTests
     }
 
     [Fact]
+    public void RestoreAssetCollectionKeepsTheIdAndAssetFamily()
+    {
+        var id = AttributeId.New();
+        var assetFamilyId = AssetFamilyId.New();
+
+        var attribute = AttributeDefinition.RestoreAssetCollection(
+            id,
+            Images,
+            assetFamilyId,
+            isLocalizable: true,
+            isScopable: false);
+
+        attribute.Id.ShouldBe(id);
+        attribute.Type.ShouldBe(AttributeType.AssetCollection);
+        attribute.SettingsAs<AssetCollectionSettings>().AssetFamilyId.ShouldBe(assetFamilyId);
+        attribute.IsLocalizable.ShouldBeTrue();
+    }
+
+    [Fact]
     public void CreateRefusesTheAssetCollectionTypeBecauseItNeedsAnAssetFamily()
     {
         Should.Throw<ArgumentException>(() => AttributeDefinition.Create(Images, AttributeType.AssetCollection));

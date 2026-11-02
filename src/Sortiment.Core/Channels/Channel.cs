@@ -42,7 +42,21 @@ public sealed class Channel
     /// The new channel, or the errors <c>channel.locale_required</c> if no locale is given and
     /// <c>channel.locale_already_active</c> for each duplicate locale.
     /// </returns>
-    public static Result<Channel> Create(ChannelCode code, IEnumerable<Locale> locales)
+    public static Result<Channel> Create(ChannelCode code, IEnumerable<Locale> locales) =>
+        Build(ChannelId.New(), code, locales);
+
+    /// <summary>
+    /// Restores a channel from stored state (ADR 0011).
+    /// </summary>
+    /// <param name="id">The channel's ID.</param>
+    /// <param name="code">The channel's code.</param>
+    /// <param name="locales">The locales that are active in the channel, in display order.</param>
+    /// <returns>The channel.</returns>
+    /// <exception cref="ArgumentException">The channel has no locales or the same locale more than once.</exception>
+    public static Channel Restore(ChannelId id, ChannelCode code, IEnumerable<Locale> locales) =>
+        CodeRules.ValueOrThrow(Build(id, code, locales), nameof(locales));
+
+    private static Result<Channel> Build(ChannelId id, ChannelCode code, IEnumerable<Locale> locales)
     {
         ArgumentNullException.ThrowIfNull(code);
         ArgumentNullException.ThrowIfNull(locales);
@@ -68,7 +82,7 @@ public sealed class Channel
         }
 
         return errors.Count == 0
-            ? Result.Success(new Channel(ChannelId.New(), code, distinctLocales))
+            ? Result.Success(new Channel(id, code, distinctLocales))
             : Result.Failure<Channel>(errors);
     }
 

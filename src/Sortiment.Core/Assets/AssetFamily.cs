@@ -55,19 +55,46 @@ public sealed class AssetFamily
     public static Result<AssetFamily> Create(
         AssetFamilyCode code,
         IEnumerable<MediaTypePattern>? allowedMediaTypes = null,
-        long? maxFileSize = null)
+        long? maxFileSize = null) =>
+        Build(AssetFamilyId.New(), code, allowedMediaTypes ?? [], maxFileSize);
+
+    /// <summary>
+    /// Restores an asset family from stored state (ADR 0011).
+    /// </summary>
+    /// <param name="id">The family's ID.</param>
+    /// <param name="code">The family's code.</param>
+    /// <param name="allowedMediaTypes">The media types its files may have. Empty allows every type.</param>
+    /// <param name="maxFileSize">The maximum file size in bytes, or <see langword="null"/> for no limit.</param>
+    /// <returns>The family.</returns>
+    /// <exception cref="ArgumentException">A media type is repeated or the maximum file size is less than 1.</exception>
+    public static AssetFamily Restore(
+        AssetFamilyId id,
+        AssetFamilyCode code,
+        IEnumerable<MediaTypePattern> allowedMediaTypes,
+        long? maxFileSize)
+    {
+        ArgumentNullException.ThrowIfNull(allowedMediaTypes);
+
+        return CodeRules.ValueOrThrow(Build(id, code, allowedMediaTypes, maxFileSize), nameof(allowedMediaTypes));
+    }
+
+    private static Result<AssetFamily> Build(
+        AssetFamilyId id,
+        AssetFamilyCode code,
+        IEnumerable<MediaTypePattern> allowedMediaTypes,
+        long? maxFileSize)
     {
         ArgumentNullException.ThrowIfNull(code);
 
         var errors = new List<ResultError>();
-        var patterns = DistinctPatterns(code, allowedMediaTypes ?? [], errors);
+        var patterns = DistinctPatterns(code, allowedMediaTypes, errors);
         if (maxFileSize < 1)
         {
             errors.Add(AssetErrors.InvalidMaxFileSize(code, maxFileSize.Value));
         }
 
         return errors.Count == 0
-            ? Result.Success(new AssetFamily(AssetFamilyId.New(), code, patterns, maxFileSize))
+            ? Result.Success(new AssetFamily(id, code, patterns, maxFileSize))
             : Result.Failure<AssetFamily>(errors);
     }
 

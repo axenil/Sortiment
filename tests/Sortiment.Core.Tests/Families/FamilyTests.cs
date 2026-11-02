@@ -25,6 +25,44 @@ public sealed class FamilyTests
     }
 
     [Fact]
+    public void RestoreKeepsTheIdAttributesAndRequirements()
+    {
+        var id = FamilyId.New();
+
+        var family = Family.Restore(
+            id,
+            TShirts,
+            [_description.Id, _name.Id],
+            new Dictionary<ChannelId, IReadOnlySet<AttributeId>> { [Ecommerce] = new HashSet<AttributeId> { _name.Id } });
+
+        family.Id.ShouldBe(id);
+        family.Code.ShouldBe(TShirts);
+        family.Attributes.ShouldBe([_description.Id, _name.Id]);
+        family.RequiredAttributes(Ecommerce).ShouldBe([_name.Id]);
+        family.RequiredAttributes(Print).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void RestoreRejectsARepeatedAttribute()
+    {
+        Should.Throw<ArgumentException>(() => Family.Restore(
+            FamilyId.New(),
+            TShirts,
+            [_name.Id, _name.Id],
+            new Dictionary<ChannelId, IReadOnlySet<AttributeId>>()));
+    }
+
+    [Fact]
+    public void RestoreRejectsARequirementOutsideTheFamily()
+    {
+        Should.Throw<ArgumentException>(() => Family.Restore(
+            FamilyId.New(),
+            TShirts,
+            [_name.Id],
+            new Dictionary<ChannelId, IReadOnlySet<AttributeId>> { [Ecommerce] = new HashSet<AttributeId> { _material.Id } }));
+    }
+
+    [Fact]
     public void AddAttributeKeepsTheAttributesInOrder()
     {
         var family = Family.Create(TShirts).Value;

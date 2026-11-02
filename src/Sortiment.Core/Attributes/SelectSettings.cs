@@ -37,9 +37,31 @@ public sealed class SelectSettings : AttributeSettings
             return Result.Failure<AttributeOption>(AttributeErrors.OptionAlreadyExists(_attribute, code));
         }
 
-        var option = new AttributeOption(AttributeOptionId.New(), code);
-        _options.Add(option);
-        return Result.Success(option);
+        return Result.Success(Append(AttributeOptionId.New(), code));
+    }
+
+    /// <summary>
+    /// Restores a stored option, with its ID, to the end of the option list (ADR 0011).
+    /// </summary>
+    /// <param name="id">The option's ID.</param>
+    /// <param name="code">The option's code.</param>
+    /// <returns>The option.</returns>
+    /// <exception cref="ArgumentException">The attribute already has an option with this ID or code.</exception>
+    public AttributeOption RestoreOption(AttributeOptionId id, AttributeOptionCode code)
+    {
+        ArgumentNullException.ThrowIfNull(code);
+
+        if (FindOption(id) is not null)
+        {
+            throw new ArgumentException($"Attribute '{_attribute}' already has an option with ID {id}.", nameof(id));
+        }
+
+        if (FindOption(code) is not null)
+        {
+            throw new ArgumentException(AttributeErrors.OptionAlreadyExists(_attribute, code).Message, nameof(code));
+        }
+
+        return Append(id, code);
     }
 
     /// <summary>
@@ -90,6 +112,13 @@ public sealed class SelectSettings : AttributeSettings
             (AttributeType.MultiSelect, MultiSelectValue multi) => ValidateMultiSelect(attribute, multi),
             _ => [ValueErrors.TypeMismatch(attribute, value)],
         };
+
+    private AttributeOption Append(AttributeOptionId id, AttributeOptionCode code)
+    {
+        var option = new AttributeOption(id, code);
+        _options.Add(option);
+        return option;
+    }
 
     private IEnumerable<ResultError> ValidateSingleSelect(AttributeDefinition attribute, SingleSelectValue value)
     {

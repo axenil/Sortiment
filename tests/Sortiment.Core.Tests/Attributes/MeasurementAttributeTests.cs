@@ -20,6 +20,24 @@ public sealed class MeasurementAttributeTests
     }
 
     [Fact]
+    public void RestoreMeasurementKeepsTheIdAndFamily()
+    {
+        var id = AttributeId.New();
+
+        var attribute = AttributeDefinition.RestoreMeasurement(
+            id,
+            NetWeight,
+            MeasurementFamilies.Weight,
+            isLocalizable: false,
+            isScopable: true);
+
+        attribute.Id.ShouldBe(id);
+        attribute.Type.ShouldBe(AttributeType.Measurement);
+        attribute.SettingsAs<MeasurementSettings>().Family.ShouldBeSameAs(MeasurementFamilies.Weight);
+        attribute.IsScopable.ShouldBeTrue();
+    }
+
+    [Fact]
     public void CreateRefusesTheMeasurementTypeBecauseItNeedsAFamily()
     {
         Should.Throw<ArgumentException>(() => AttributeDefinition.Create(NetWeight, AttributeType.Measurement));
