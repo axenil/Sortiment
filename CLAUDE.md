@@ -92,7 +92,7 @@ dotnet format --verify-no-changes
 
 ## Workflow
 
-- **Language:** all code, comments, documentation, commit messages and issues are written in **English**, even if instructions are given in Swedish.
+- **Language:** all code, comments, documentation, commit messages and issues are written in **English**, even if instructions are given in Swedish. The only exception is course material in `Course/`, which may be written in Swedish.
 - **Branches:** do not commit directly to `main` (the initial repository setup is the only exception). Work in feature branches (`feat/…`, `fix/…`, `docs/…`) and merge through pull requests.
 - **Commits:** Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`), small and focused.
 - **Agent autonomy:** the agent may create feature branches and commit locally without asking. It must ask before pushing, opening a pull request or merging.
@@ -114,5 +114,5 @@ dotnet format --verify-no-changes
 - **Do not commit secrets, connection strings or personal data.** Use user secrets or environment variables.
 - **Do not edit an EF Core migration that has already been committed.** Add a new one instead. Before the first release, resetting migrations may be cleaner, but ask first.
 - **Do not change CI workflows, repository settings or the license** without asking.
-- **Do not write documentation or code comments in Swedish.**
+- **Do not write documentation or code comments in Swedish,** except course material in `Course/`.
 - **Do not write unnecessary comments,** or comments that depend on context the reader doesn't have (conversations, debugging sessions, earlier versions of the code).
