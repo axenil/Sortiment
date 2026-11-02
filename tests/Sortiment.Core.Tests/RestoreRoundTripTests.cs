@@ -123,6 +123,32 @@ public sealed class RestoreRoundTripTests
     }
 
     [Fact]
+    public void VariantsRoundTrip()
+    {
+        var schema = _catalog.ColorAndSizeSchema();
+        var context = new VariantContext(
+            schema,
+            ProductModel.Create(ProductModelCode.Parse("linen_shirt"), schema).Value);
+        var variant = Product.CreateVariant(Sku.Parse("TS-001-RED-M"), context).Value;
+        variant.SetValue(context, AttributeCode.Parse("color"), ValueScope.Global, new SingleSelectValue(_catalog.Red.Id))
+            .ShouldSucceed();
+        variant.SetValue(context, AttributeCode.Parse("size"), ValueScope.Global, new SingleSelectValue(_catalog.Medium.Id))
+            .ShouldSucceed();
+
+        var restored = Product.Restore(
+            variant.Id,
+            variant.Sku,
+            variant.FamilyId,
+            variant.IsEnabled,
+            variant.Values,
+            variant.ProductModelId);
+
+        restored.ProductModelId.ShouldBe(variant.ProductModelId);
+        restored.Values.ShouldBe(variant.Values, ignoreOrder: true);
+        restored.AxisCombination(context).ShouldBe(variant.AxisCombination(context));
+    }
+
+    [Fact]
     public void ProductsRoundTrip()
     {
         var schema = _catalog.TShirtSchema();
