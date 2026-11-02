@@ -1,6 +1,6 @@
 # 0007. Measurements
 
-- **Status:** Accepted
+- **Status:** Accepted. References to families and units are amended by [0013](0013-measurement-identity.md).
 - **Date:** 2026-10-21
 
 ## Context

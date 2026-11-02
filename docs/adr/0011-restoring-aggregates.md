@@ -1,6 +1,6 @@
 # 0011. Restoring aggregates from stored state
 
-- **Status:** Accepted
+- **Status:** Accepted. Restoring measurement families is amended by [0013](0013-measurement-identity.md).
 - **Date:** 2026-11-02
 
 ## Context
