@@ -192,6 +192,8 @@ public sealed class ProductModel
         return errors.Count == 0 ? Result.Success() : Result.Failure(errors);
     }
 
+    internal bool HasValue(AttributeId attribute, ValueScope scope) => _values.Has(attribute, scope);
+
     private void EnsureOwnFamilyVariant(VariantSchema schema)
     {
         ArgumentNullException.ThrowIfNull(schema);
