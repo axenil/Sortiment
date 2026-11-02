@@ -1,6 +1,6 @@
 # 0005. Result and error model
 
-- **Status:** Accepted
+- **Status:** Accepted. The keys used for identifiers in error context are amended by [0012](0012-error-context-identifiers.md).
 - **Date:** 2026-10-21
 
 ## Context
