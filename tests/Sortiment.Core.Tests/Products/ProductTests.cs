@@ -199,7 +199,11 @@ public sealed class ProductTests
 
         _catalog.TShirts.RemoveAttribute(_catalog.Color.Id);
 
-        product.Validate(schema).Errors.ShouldHaveSingleItem().Code.ShouldBe("product.attribute_not_in_family");
+        var error = product.Validate(schema).Errors.ShouldHaveSingleItem();
+        error.Code.ShouldBe("product.attribute_not_in_family");
+        error.Context[ErrorContextKeys.Product].ShouldBe("TS-001");
+        error.Context[ErrorContextKeys.AttributeId].ShouldBe(_catalog.Color.Id.ToString());
+        error.Context.ShouldNotContainKey(ErrorContextKeys.Attribute);
     }
 
     [Fact]

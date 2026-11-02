@@ -32,7 +32,7 @@ public sealed class FamilySchemaTests
 
         result.Errors.Select(error => error.Code).ShouldBe(
             ["family_schema.attribute_missing", "family_schema.attribute_missing"]);
-        result.Errors.Select(error => error.Context[ErrorContextKeys.Attribute])
+        result.Errors.Select(error => error.Context[ErrorContextKeys.AttributeId])
             .ShouldBe([_name.Id.ToString(), _description.Id.ToString()]);
     }
 

@@ -145,7 +145,7 @@ public sealed class Family
     {
         if (!_attributes.Remove(attribute))
         {
-            return Result.Failure(FamilyErrors.AttributeNotInFamily(Code, attribute.ToString()));
+            return Result.Failure(FamilyErrors.AttributeNotInFamily(Code, attribute));
         }
 
         foreach (var required in _requirements.Values)
@@ -169,7 +169,7 @@ public sealed class Family
 
         if (!HasAttribute(attribute.Id))
         {
-            return Result.Failure(FamilyErrors.AttributeNotInFamily(Code, attribute.Code.Value));
+            return Result.Failure(FamilyErrors.AttributeNotInFamily(Code, attribute.Code));
         }
 
         if (!_requirements.TryGetValue(channel, out var required))

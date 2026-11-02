@@ -107,8 +107,12 @@ public sealed class FamilyTests
     [Fact]
     public void RemoveAttributeReportsAnAttributeThatIsNotInTheFamily()
     {
-        FamilyWith(_name).RemoveAttribute(_material.Id).Errors.ShouldHaveSingleItem().Code
-            .ShouldBe("family.attribute_not_in_family");
+        var error = FamilyWith(_name).RemoveAttribute(_material.Id).Errors.ShouldHaveSingleItem();
+
+        error.Code.ShouldBe("family.attribute_not_in_family");
+        error.Context[ErrorContextKeys.Family].ShouldBe("t_shirts");
+        error.Context[ErrorContextKeys.AttributeId].ShouldBe(_material.Id.ToString());
+        error.Context.ShouldNotContainKey(ErrorContextKeys.Attribute);
     }
 
     [Fact]

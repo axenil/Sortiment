@@ -158,7 +158,7 @@ public sealed class Product
         var definition = schema.FindAttribute(attribute);
         if (definition is null)
         {
-            return Result.Failure(ProductErrors.AttributeNotInFamily(this, schema.Family, attribute.Value));
+            return Result.Failure(ProductErrors.AttributeNotInFamily(this, schema.Family, attribute));
         }
 
         var validation = definition.Validate(value, scope);
@@ -224,7 +224,7 @@ public sealed class Product
             var definition = schema.FindAttribute(attributeId);
             if (definition is null)
             {
-                errors.Add(ProductErrors.AttributeNotInFamily(this, schema.Family, attributeId.ToString()));
+                errors.Add(ProductErrors.AttributeNotInFamily(this, schema.Family, attributeId));
                 continue;
             }
 

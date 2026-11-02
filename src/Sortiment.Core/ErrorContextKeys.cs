@@ -3,6 +3,10 @@ namespace Sortiment.Core;
 /// <summary>
 /// Well-known keys for <see cref="ResultError.Context"/>.
 /// </summary>
+/// <remarks>
+/// Keys named after an entity, such as <see cref="Attribute"/>, always hold its code. Keys ending in <c>_id</c>, such
+/// as <see cref="AttributeId"/>, hold its ID and are used where the code is not known (ADR 0012).
+/// </remarks>
 public static class ErrorContextKeys
 {
     /// <summary>
@@ -11,14 +15,24 @@ public static class ErrorContextKeys
     public const string Attribute = "attribute";
 
     /// <summary>
+    /// The ID of the attribute the error relates to, used where its code is not known.
+    /// </summary>
+    public const string AttributeId = "attribute_id";
+
+    /// <summary>
     /// The code of the attribute option the error relates to.
     /// </summary>
     public const string Option = "option";
 
     /// <summary>
-    /// The channel the error relates to: its code, or its ID where only the ID is known.
+    /// The code of the channel the error relates to.
     /// </summary>
     public const string Channel = "channel";
+
+    /// <summary>
+    /// The ID of the channel the error relates to, used where its code is not known, such as in a value's scope.
+    /// </summary>
+    public const string ChannelId = "channel_id";
 
     /// <summary>
     /// The BCP 47 tag of the locale the error relates to.
