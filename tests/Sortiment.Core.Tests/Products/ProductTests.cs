@@ -115,12 +115,12 @@ public sealed class ProductTests
     {
         var product = NewProduct();
         var schema = _catalog.TShirtSchema();
-        product.SetValue(schema, Code("weight"), ValueScope.Global, new MeasurementValue(180m, UnitCode.Parse("g"))).ShouldSucceed();
+        product.SetValue(schema, Code("weight"), ValueScope.Global, new MeasurementValue(180m, MeasurementFamilies.Weight.UnitId("g"))).ShouldSucceed();
 
-        product.SetValue(schema, Code("weight"), ValueScope.Global, new MeasurementValue(1m, UnitCode.Parse("cm"))).IsFailure.ShouldBeTrue();
+        product.SetValue(schema, Code("weight"), ValueScope.Global, new MeasurementValue(1m, MeasurementFamilies.Length.UnitId("cm"))).IsFailure.ShouldBeTrue();
 
         product.GetValue(_catalog.Weight.Id, ValueScope.Global)
-            .ShouldBe(new MeasurementValue(180m, UnitCode.Parse("g")));
+            .ShouldBe(new MeasurementValue(180m, MeasurementFamilies.Weight.UnitId("g")));
     }
 
     [Fact]

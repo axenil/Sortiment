@@ -32,6 +32,19 @@ public sealed class RestoreRoundTripTests
     }
 
     [Fact]
+    public void MeasurementFamiliesRoundTrip()
+    {
+        foreach (var family in MeasurementFamilies.All)
+        {
+            var restored = MeasurementFamily.Restore(family.Id, family.Code, family.Units);
+
+            restored.Id.ShouldBe(family.Id);
+            restored.Code.ShouldBe(family.Code);
+            restored.Units.ShouldBe(family.Units);
+        }
+    }
+
+    [Fact]
     public void AttributesOfEveryTypeRoundTrip()
     {
         foreach (var attribute in AttributesOfEveryType())
@@ -79,7 +92,7 @@ public sealed class RestoreRoundTripTests
             schema,
             AttributeCode.Parse("weight"),
             ValueScope.Global,
-            new MeasurementValue(180m, UnitCode.Parse("g"))).ShouldSucceed();
+            new MeasurementValue(180m, MeasurementFamilies.Weight.UnitId("g"))).ShouldSucceed();
         product.Disable();
         product.Values.Count.ShouldBe(4);
 
@@ -146,7 +159,7 @@ public sealed class RestoreRoundTripTests
             MeasurementSettings measurement => AttributeDefinition.RestoreMeasurement(
                 source.Id,
                 source.Code,
-                MeasurementFamilies.Find(measurement.Family.Code)!,
+                MeasurementFamilies.Find(measurement.Family.Id)!,
                 source.IsLocalizable,
                 source.IsScopable),
             AssetCollectionSettings assets => AttributeDefinition.RestoreAssetCollection(
@@ -188,7 +201,7 @@ public sealed class RestoreRoundTripTests
             TextSettings text => $"text max={text.MaxLength}",
             NumberSettings number => $"number {number.MinValue}..{number.MaxValue} decimals={number.DecimalPlaces}",
             SelectSettings select => $"select {string.Join(",", select.Options.Select(option => $"{option.Id}:{option.Code}"))}",
-            MeasurementSettings measurement => $"measurement {measurement.Family.Code}",
+            MeasurementSettings measurement => $"measurement {measurement.Family.Id}",
             AssetCollectionSettings assets => $"assets {assets.AssetFamilyId} max={assets.MaxCount}",
             BooleanSettings => "boolean",
             DateSettings => "date",

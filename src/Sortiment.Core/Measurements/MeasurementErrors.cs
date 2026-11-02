@@ -17,6 +17,13 @@ internal static class MeasurementErrors
             .WithContext(ErrorContextKeys.MeasurementFamily, family.Value)
             .WithContext(ErrorContextKeys.Unit, unit.Value);
 
+    public static ResultError DuplicateUnitId(MeasurementFamilyCode family, MeasurementUnitId unit) =>
+        new ResultError(
+                "measurement_family.duplicate_unit_id",
+                $"Measurement family '{family}' has more than one unit with the ID {unit}.")
+            .WithContext(ErrorContextKeys.MeasurementFamily, family.Value)
+            .WithContext(ErrorContextKeys.UnitId, unit.ToString());
+
     public static ResultError InvalidConversionFactor(MeasurementFamilyCode family, MeasurementUnit unit) =>
         new ResultError(
                 "measurement_family.invalid_conversion_factor",
@@ -24,10 +31,10 @@ internal static class MeasurementErrors
             .WithContext(ErrorContextKeys.MeasurementFamily, family.Value)
             .WithContext(ErrorContextKeys.Unit, unit.Code.Value);
 
-    public static ResultError UnknownUnit(MeasurementFamilyCode family, UnitCode unit) =>
+    public static ResultError UnknownUnit(MeasurementFamilyCode family, MeasurementUnitId unit) =>
         new ResultError(
                 "measurement_family.unknown_unit",
-                $"Measurement family '{family}' has no unit '{unit}'.")
+                $"Measurement family '{family}' has no unit with the ID {unit}.")
             .WithContext(ErrorContextKeys.MeasurementFamily, family.Value)
-            .WithContext(ErrorContextKeys.Unit, unit.Value);
+            .WithContext(ErrorContextKeys.UnitId, unit.ToString());
 }

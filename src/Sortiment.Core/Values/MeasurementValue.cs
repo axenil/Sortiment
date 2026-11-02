@@ -7,31 +7,11 @@ namespace Sortiment.Core.Values;
 /// measurement family.
 /// </summary>
 /// <remarks>
-/// Values are compared exactly as given: <c>1 kg</c> and <c>1000 g</c> are different values.
-/// Use <see cref="MeasurementFamily.Convert"/> to compare or present them in the same unit.
+/// The unit is referred to by ID (ADR 0013). Imports and the API resolve unit codes with
+/// <see cref="MeasurementFamily.FindUnit(UnitCode)"/>. Values are compared exactly as given: <c>1 kg</c> and
+/// <c>1000 g</c> are different values. Use <see cref="MeasurementFamily.Convert"/> to compare or present them in the
+/// same unit.
 /// </remarks>
-public sealed record MeasurementValue : AttributeValue
-{
-    /// <summary>
-    /// Creates a measurement value.
-    /// </summary>
-    /// <param name="amount">The amount.</param>
-    /// <param name="unit">The unit the amount is expressed in.</param>
-    public MeasurementValue(decimal amount, UnitCode unit)
-    {
-        ArgumentNullException.ThrowIfNull(unit);
-
-        Amount = amount;
-        Unit = unit;
-    }
-
-    /// <summary>
-    /// Gets the amount.
-    /// </summary>
-    public decimal Amount { get; }
-
-    /// <summary>
-    /// Gets the unit the amount is expressed in.
-    /// </summary>
-    public UnitCode Unit { get; }
-}
+/// <param name="Amount">The amount.</param>
+/// <param name="Unit">The ID of the unit the amount is expressed in.</param>
+public sealed record MeasurementValue(decimal Amount, MeasurementUnitId Unit) : AttributeValue;

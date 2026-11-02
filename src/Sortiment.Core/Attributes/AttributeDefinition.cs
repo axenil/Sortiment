@@ -142,7 +142,7 @@ public sealed class AttributeDefinition
     /// <param name="code">The attribute's code.</param>
     /// <param name="measurementFamily">
     /// The family whose units the attribute's values use, for example one found with
-    /// <see cref="MeasurementFamilies.Find"/>.
+    /// <see cref="MeasurementFamilies.Find(MeasurementFamilyId)"/>.
     /// </param>
     /// <param name="isLocalizable">Whether the attribute has a separate value per locale.</param>
     /// <param name="isScopable">Whether the attribute has a separate value per channel.</param>
