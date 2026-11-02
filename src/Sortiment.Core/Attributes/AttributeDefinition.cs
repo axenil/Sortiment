@@ -17,13 +17,14 @@ namespace Sortiment.Core.Attributes;
 public sealed class AttributeDefinition
 {
     private AttributeDefinition(
+        AttributeId id,
         AttributeCode code,
         AttributeType type,
         bool isLocalizable,
         bool isScopable,
         AttributeSettings settings)
     {
-        Id = AttributeId.New();
+        Id = id;
         Code = code;
         Type = type;
         IsLocalizable = isLocalizable;
@@ -84,26 +85,32 @@ public sealed class AttributeDefinition
         AttributeCode code,
         AttributeType type,
         bool isLocalizable = false,
-        bool isScopable = false)
-    {
-        ArgumentNullException.ThrowIfNull(code);
+        bool isScopable = false) =>
+        Build(AttributeId.New(), code, type, isLocalizable, isScopable);
 
-        var settings = CreateSettings(code, type);
-        var errors = new List<ResultError>();
-        if (type == AttributeType.Identifier && isLocalizable)
-        {
-            errors.Add(AttributeErrors.IdentifierCannotBeLocalizable(code));
-        }
-
-        if (type == AttributeType.Identifier && isScopable)
-        {
-            errors.Add(AttributeErrors.IdentifierCannotBeScopable(code));
-        }
-
-        return errors.Count == 0
-            ? Result.Success(new AttributeDefinition(code, type, isLocalizable, isScopable, settings))
-            : Result.Failure<AttributeDefinition>(errors);
-    }
+    /// <summary>
+    /// Restores an attribute from stored state (ADR 0011), with default settings. Restore the settings through the
+    /// setters of <see cref="Settings"/>, and select options through <see cref="SelectSettings.RestoreOption"/>.
+    /// </summary>
+    /// <param name="id">The attribute's ID.</param>
+    /// <param name="code">The attribute's code.</param>
+    /// <param name="type">The kind of value the attribute holds.</param>
+    /// <param name="isLocalizable">Whether the attribute has a separate value per locale.</param>
+    /// <param name="isScopable">Whether the attribute has a separate value per channel.</param>
+    /// <returns>The attribute.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="type"/> is not a defined attribute type.</exception>
+    /// <exception cref="ArgumentException">
+    /// An identifier attribute is localizable or scopable, or <paramref name="type"/> is
+    /// <see cref="AttributeType.Measurement"/> or <see cref="AttributeType.AssetCollection"/>. Use
+    /// <see cref="RestoreMeasurement"/> or <see cref="RestoreAssetCollection"/> for those.
+    /// </exception>
+    public static AttributeDefinition Restore(
+        AttributeId id,
+        AttributeCode code,
+        AttributeType type,
+        bool isLocalizable,
+        bool isScopable) =>
+        CodeRules.ValueOrThrow(Build(id, code, type, isLocalizable, isScopable), nameof(type));
 
     /// <summary>
     /// Creates a new measurement attribute. The measurement family cannot change after the attribute is created.
@@ -124,12 +131,39 @@ public sealed class AttributeDefinition
         ArgumentNullException.ThrowIfNull(code);
         ArgumentNullException.ThrowIfNull(measurementFamily);
 
-        return Result.Success(new AttributeDefinition(
+        return Result.Success(
+            RestoreMeasurement(AttributeId.New(), code, measurementFamily, isLocalizable, isScopable));
+    }
+
+    /// <summary>
+    /// Restores a measurement attribute from stored state (ADR 0011).
+    /// </summary>
+    /// <param name="id">The attribute's ID.</param>
+    /// <param name="code">The attribute's code.</param>
+    /// <param name="measurementFamily">
+    /// The family whose units the attribute's values use, for example one found with
+    /// <see cref="MeasurementFamilies.Find"/>.
+    /// </param>
+    /// <param name="isLocalizable">Whether the attribute has a separate value per locale.</param>
+    /// <param name="isScopable">Whether the attribute has a separate value per channel.</param>
+    /// <returns>The attribute.</returns>
+    public static AttributeDefinition RestoreMeasurement(
+        AttributeId id,
+        AttributeCode code,
+        MeasurementFamily measurementFamily,
+        bool isLocalizable,
+        bool isScopable)
+    {
+        ArgumentNullException.ThrowIfNull(code);
+        ArgumentNullException.ThrowIfNull(measurementFamily);
+
+        return new AttributeDefinition(
+            id,
             code,
             AttributeType.Measurement,
             isLocalizable,
             isScopable,
-            new MeasurementSettings(measurementFamily)));
+            new MeasurementSettings(measurementFamily));
     }
 
     /// <summary>
@@ -146,15 +180,38 @@ public sealed class AttributeDefinition
         bool isLocalizable = false,
         bool isScopable = false)
     {
-        ArgumentNullException.ThrowIfNull(code);
         ArgumentNullException.ThrowIfNull(assetFamily);
 
-        return Result.Success(new AttributeDefinition(
+        return Result.Success(
+            RestoreAssetCollection(AttributeId.New(), code, assetFamily.Id, isLocalizable, isScopable));
+    }
+
+    /// <summary>
+    /// Restores an asset collection attribute from stored state (ADR 0011). Restore the maximum count through
+    /// <see cref="AssetCollectionSettings.SetMaxCount"/>.
+    /// </summary>
+    /// <param name="id">The attribute's ID.</param>
+    /// <param name="code">The attribute's code.</param>
+    /// <param name="assetFamilyId">The identity of the family whose assets the attribute's values hold.</param>
+    /// <param name="isLocalizable">Whether the attribute has a separate value per locale.</param>
+    /// <param name="isScopable">Whether the attribute has a separate value per channel.</param>
+    /// <returns>The attribute.</returns>
+    public static AttributeDefinition RestoreAssetCollection(
+        AttributeId id,
+        AttributeCode code,
+        AssetFamilyId assetFamilyId,
+        bool isLocalizable,
+        bool isScopable)
+    {
+        ArgumentNullException.ThrowIfNull(code);
+
+        return new AttributeDefinition(
+            id,
             code,
             AttributeType.AssetCollection,
             isLocalizable,
             isScopable,
-            new AssetCollectionSettings(code, assetFamily.Id)));
+            new AssetCollectionSettings(code, assetFamilyId));
     }
 
     /// <summary>
@@ -208,6 +265,32 @@ public sealed class AttributeDefinition
 
         var errors = ScopeErrors(scope).Select(error => AddScopeContext(error, scope)).ToList();
         return errors.Count == 0 ? Result.Success() : Result.Failure(errors);
+    }
+
+    private static Result<AttributeDefinition> Build(
+        AttributeId id,
+        AttributeCode code,
+        AttributeType type,
+        bool isLocalizable,
+        bool isScopable)
+    {
+        ArgumentNullException.ThrowIfNull(code);
+
+        var settings = CreateSettings(code, type);
+        var errors = new List<ResultError>();
+        if (type == AttributeType.Identifier && isLocalizable)
+        {
+            errors.Add(AttributeErrors.IdentifierCannotBeLocalizable(code));
+        }
+
+        if (type == AttributeType.Identifier && isScopable)
+        {
+            errors.Add(AttributeErrors.IdentifierCannotBeScopable(code));
+        }
+
+        return errors.Count == 0
+            ? Result.Success(new AttributeDefinition(id, code, type, isLocalizable, isScopable, settings))
+            : Result.Failure<AttributeDefinition>(errors);
     }
 
     private static AttributeSettings CreateSettings(AttributeCode code, AttributeType type) =>
