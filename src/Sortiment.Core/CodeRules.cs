@@ -23,15 +23,16 @@ internal static class CodeRules
             errors.Add(new ResultError(
                     "code.too_long",
                     $"{kind} is {value.Length} characters long. The maximum is {MaxLength}.")
-                .WithContext(ErrorContextKeys.Value, value));
+                .WithContext(ErrorContextKeys.Value, InputEcho.Format(value)));
         }
 
         if (!value.All(IsAllowedCharacter))
         {
+            var echo = InputEcho.Format(value);
             errors.Add(new ResultError(
                     "code.invalid_characters",
-                    $"{kind} '{value}' can only contain lowercase letters a-z, digits 0-9 and underscores.")
-                .WithContext(ErrorContextKeys.Value, value));
+                    $"{kind} '{echo}' can only contain lowercase letters a-z, digits 0-9 and underscores.")
+                .WithContext(ErrorContextKeys.Value, echo));
         }
 
         return errors.Count == 0 ? Result.Success(value) : Result.Failure<string>(errors);

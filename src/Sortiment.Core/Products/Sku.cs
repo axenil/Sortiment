@@ -51,7 +51,7 @@ public sealed record Sku
 
         if (value.Trim().Length != value.Length)
         {
-            errors.Add(Error("sku.surrounding_whitespace", $"SKU '{value}' cannot start or end with whitespace.", value));
+            errors.Add(Error("sku.surrounding_whitespace", $"SKU '{InputEcho.Format(value)}' cannot start or end with whitespace.", value));
         }
 
         return errors.Count == 0 ? Result.Success(new Sku(value)) : Result.Failure<Sku>(errors);
@@ -80,5 +80,5 @@ public sealed record Sku
     public override string ToString() => Value;
 
     private static ResultError Error(string code, string message, string value) =>
-        new ResultError(code, message).WithContext(ErrorContextKeys.Value, value);
+        new ResultError(code, message).WithContext(ErrorContextKeys.Value, InputEcho.Format(value));
 }

@@ -34,10 +34,11 @@ public sealed partial record Locale
 
         if (!TagPattern().IsMatch(code))
         {
+            var echo = InputEcho.Format(code);
             return Result.Failure<Locale>(new ResultError(
                     "locale.invalid_format",
-                    $"Locale '{code}' must be a BCP 47 tag with canonical casing, such as 'en', 'sv-SE' or 'zh-Hant-TW'.")
-                .WithContext(ErrorContextKeys.Value, code));
+                    $"Locale '{echo}' must be a BCP 47 tag with canonical casing, such as 'en', 'sv-SE' or 'zh-Hant-TW'.")
+                .WithContext(ErrorContextKeys.Value, echo));
         }
 
         return Result.Success(new Locale(code));

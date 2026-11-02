@@ -77,5 +77,9 @@ public static class ErrorContextKeys
     /// <summary>
     /// The invalid input value.
     /// </summary>
+    /// <remarks>
+    /// Input is echoed for display, not for processing: control characters and invisible formatting characters are
+    /// escaped as <c>\uXXXX</c>, and long input is shortened to 100 characters ending with <c>…</c>.
+    /// </remarks>
     public const string Value = "value";
 }

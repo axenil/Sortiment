@@ -29,7 +29,7 @@ public sealed record FileChecksum
             return Result.Failure<FileChecksum>(new ResultError(
                     "file_checksum.invalid_format",
                     $"A file checksum must be a SHA-256 hash of {HexLength} hexadecimal characters.")
-                .WithContext(ErrorContextKeys.Value, value ?? string.Empty));
+                .WithContext(ErrorContextKeys.Value, InputEcho.Format(value ?? string.Empty)));
         }
 
         return Result.Success(new FileChecksum(value.ToLowerInvariant()));

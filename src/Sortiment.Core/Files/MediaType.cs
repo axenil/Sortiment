@@ -43,10 +43,11 @@ public sealed partial record MediaType
         var parts = value.Split('/');
         if (parts.Length != 2 || !IsRestrictedName(parts[0]) || !IsRestrictedName(parts[1]))
         {
+            var echo = InputEcho.Format(value);
             return Result.Failure<MediaType>(new ResultError(
                     "media_type.invalid_format",
-                    $"Media type '{value}' must have the form type/subtype, for example 'image/jpeg', without parameters.")
-                .WithContext(ErrorContextKeys.Value, value));
+                    $"Media type '{echo}' must have the form type/subtype, for example 'image/jpeg', without parameters.")
+                .WithContext(ErrorContextKeys.Value, echo));
         }
 
         return Result.Success(new MediaType(parts[0].ToLowerInvariant(), parts[1].ToLowerInvariant()));
