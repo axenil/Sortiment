@@ -107,5 +107,5 @@ public sealed record AssetFile
 
     private static bool IsValidFileName(string fileName) =>
         fileName.Length <= MaxFileNameLength
-        && !fileName.Any(character => character is '/' or '\\' || char.IsControl(character));
+        && !fileName.Any(character => character is '/' or '\\' || CharacterRules.IsInvisible(character));
 }

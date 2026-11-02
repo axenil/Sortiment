@@ -7,8 +7,9 @@ namespace Sortiment.Core.Attributes;
 /// <see cref="AttributeType.Identifier"/> attributes.
 /// </summary>
 /// <remarks>
-/// Values must not be blank. <see cref="AttributeType.Text"/> and <see cref="AttributeType.Identifier"/> values must be
-/// a single line, and identifiers cannot start or end with whitespace.
+/// Values must not be blank and cannot contain control characters other than tabs and line breaks.
+/// <see cref="AttributeType.Text"/> and <see cref="AttributeType.Identifier"/> values must be a single line, and
+/// identifiers cannot start or end with whitespace.
 /// </remarks>
 public sealed class TextSettings : AttributeSettings
 {
@@ -46,6 +47,11 @@ public sealed class TextSettings : AttributeSettings
         {
             yield return ValueErrors.Empty(attribute);
             yield break;
+        }
+
+        if (text.Any(character => char.IsControl(character) && character is not ('\t' or '\r' or '\n')))
+        {
+            yield return ValueErrors.InvalidCharacters(attribute);
         }
 
         if (attribute.Type != AttributeType.TextArea && text.AsSpan().ContainsAny('\r', '\n'))

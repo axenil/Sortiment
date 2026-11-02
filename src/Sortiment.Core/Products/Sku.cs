@@ -5,8 +5,9 @@ namespace Sortiment.Core.Products;
 /// </summary>
 /// <remarks>
 /// SKUs are case-insensitive but case-preserving: <c>ts-001</c> and <c>TS-001</c> are equal, while <see cref="Value"/>
-/// keeps the casing the SKU was created with. A SKU is 1–100 characters long, contains no control characters and does
-/// not start or end with whitespace. Uniqueness across products is enforced by whoever stores them.
+/// keeps the casing the SKU was created with. A SKU is 1–100 characters long, contains no control characters or
+/// invisible formatting characters, and does not start or end with whitespace. Uniqueness across products is enforced
+/// by whoever stores them.
 /// </remarks>
 public sealed record Sku
 {
@@ -43,9 +44,9 @@ public sealed record Sku
             errors.Add(Error("sku.too_long", $"SKU is {value.Length} characters long. The maximum is {MaxLength}.", value));
         }
 
-        if (value.Any(char.IsControl))
+        if (value.Any(CharacterRules.IsInvisible))
         {
-            errors.Add(Error("sku.invalid_characters", "SKU cannot contain control characters such as line breaks.", value));
+            errors.Add(Error("sku.invalid_characters", "SKU cannot contain control characters such as line breaks, or invisible formatting characters such as zero-width spaces.", value));
         }
 
         if (value.Trim().Length != value.Length)

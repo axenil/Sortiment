@@ -19,6 +19,12 @@ internal static class ValueErrors
             "value.empty",
             $"The value of attribute '{attribute.Code}' is empty. Remove the value instead of setting it to empty.");
 
+    public static ResultError InvalidCharacters(AttributeDefinition attribute) =>
+        Create(
+            attribute,
+            "value.invalid_characters",
+            $"The value of attribute '{attribute.Code}' contains control characters. Only tabs and line breaks are allowed.");
+
     public static ResultError LineBreakNotAllowed(AttributeDefinition attribute) =>
         Create(
             attribute,

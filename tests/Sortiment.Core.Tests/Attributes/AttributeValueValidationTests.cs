@@ -69,6 +69,27 @@ public sealed class AttributeValueValidationTests
     }
 
     [Theory]
+    [InlineData(AttributeType.Text, "Linen\0shirt")]
+    [InlineData(AttributeType.TextArea, "Linen\u001B[31mshirt")]
+    [InlineData(AttributeType.TextArea, "Linen\u007Fshirt")]
+    [InlineData(AttributeType.Identifier, "0735\u0085053850019")]
+    public void TextRejectsControlCharacters(AttributeType type, string text)
+    {
+        Create(type).Validate(new TextValue(text), ValueScope.Global).Errors.ShouldHaveSingleItem().Code
+            .ShouldBe("value.invalid_characters");
+    }
+
+    [Theory]
+    [InlineData(AttributeType.Text, "Size\tM")]
+    [InlineData(AttributeType.TextArea, "Line one\r\nLine two\tindented")]
+    [InlineData(AttributeType.Text, "חולצה‏ (M)")]
+    [InlineData(AttributeType.Text, "\U0001F468‍\U0001F469‍\U0001F467 family pack")]
+    public void TextAllowsTabsLineBreaksAndFormatCharacters(AttributeType type, string text)
+    {
+        Create(type).Validate(new TextValue(text), ValueScope.Global).IsSuccess.ShouldBeTrue();
+    }
+
+    [Theory]
     [InlineData(" 07350053850019")]
     [InlineData("07350053850019 ")]
     public void IdentifiersRejectSurroundingWhitespace(string text)
