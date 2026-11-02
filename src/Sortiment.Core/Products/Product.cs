@@ -252,26 +252,10 @@ public sealed class Product
         EnsureOwnFamily(schema);
         ArgumentNullException.ThrowIfNull(channel);
 
-        var required = schema.Family.RequiredAttributes(channel.Id)
-            .Select(id => schema.FindAttribute(id))
-            .OfType<AttributeDefinition>()
-            .ToList();
-
-        var locales = channel.Locales
-            .Select(locale => new LocaleCompleteness(
-                locale,
-                required.Count,
-                required
-                    .Where(attribute => !_values.ContainsKey((attribute.Id, ScopeFor(attribute, locale, channel.Id))))
-                    .Select(attribute => attribute.Code)
-                    .ToList()))
-            .ToList();
-
-        return new ChannelCompleteness(channel.Id, locales);
+        return CompletenessCalculator.Calculate(schema.RequiredAttributes(channel.Id), channel, HasValue);
     }
 
-    private static ValueScope ScopeFor(AttributeDefinition attribute, Locale locale, ChannelId channel) =>
-        new(attribute.IsLocalizable ? locale : null, attribute.IsScopable ? channel : null);
+    private bool HasValue(AttributeId attribute, ValueScope scope) => _values.ContainsKey((attribute, scope));
 
     private void EnsureOwnFamily(FamilySchema schema)
     {
