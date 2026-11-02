@@ -45,10 +45,11 @@ public sealed record MediaTypePattern
             && (parts[1] == Wildcard || MediaType.IsRestrictedName(parts[1]));
         if (!isValid)
         {
+            var echo = InputEcho.Format(value);
             return Result.Failure<MediaTypePattern>(new ResultError(
                     "media_type_pattern.invalid_format",
-                    $"Media type pattern '{value}' must be a media type such as 'application/pdf' or a wildcard such as 'image/*'.")
-                .WithContext(ErrorContextKeys.Value, value));
+                    $"Media type pattern '{echo}' must be a media type such as 'application/pdf' or a wildcard such as 'image/*'.")
+                .WithContext(ErrorContextKeys.Value, echo));
         }
 
         var subtype = parts[1] == Wildcard ? null : parts[1].ToLowerInvariant();

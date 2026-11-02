@@ -7,11 +7,14 @@ internal static class AssetErrors
     public static ResultError FileNameEmpty() =>
         new("asset_file.file_name_empty", "A file name cannot be empty.");
 
-    public static ResultError InvalidFileName(string fileName) =>
-        new ResultError(
+    public static ResultError InvalidFileName(string fileName)
+    {
+        var echo = InputEcho.Format(fileName);
+        return new ResultError(
                 "asset_file.invalid_file_name",
-                $"File name '{fileName}' must be at most {AssetFile.MaxFileNameLength} characters long and cannot contain a directory, control characters or invisible formatting characters.")
-            .WithContext(ErrorContextKeys.Value, fileName);
+                $"File name '{echo}' must be at most {AssetFile.MaxFileNameLength} characters long and cannot contain a directory, control characters or invisible formatting characters.")
+            .WithContext(ErrorContextKeys.Value, echo);
+    }
 
     public static ResultError EmptyFile() =>
         new("asset_file.empty_file", "A file cannot be empty.");
