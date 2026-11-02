@@ -101,6 +101,28 @@ public sealed class RestoreRoundTripTests
     }
 
     [Fact]
+    public void ProductModelsRoundTrip()
+    {
+        var schema = _catalog.ColorAndSizeSchema();
+        var model = ProductModel.Create(ProductModelCode.Parse("linen_shirt"), schema).Value;
+        model.SetValue(schema, AttributeCode.Parse("name"), ValueScope.ForLocale(Swedish), new TextValue("Linneskjorta"))
+            .ShouldSucceed();
+        model.SetValue(
+            schema,
+            AttributeCode.Parse("description"),
+            ValueScope.For(English, _catalog.Ecommerce.Id),
+            new TextValue("A linen shirt.")).ShouldSucceed();
+        model.Values.Count.ShouldBe(2);
+
+        var restored = ProductModel.Restore(model.Id, model.Code, model.FamilyVariantId, model.Values);
+
+        restored.Id.ShouldBe(model.Id);
+        restored.Code.ShouldBe(model.Code);
+        restored.FamilyVariantId.ShouldBe(model.FamilyVariantId);
+        restored.Values.ShouldBe(model.Values, ignoreOrder: true);
+    }
+
+    [Fact]
     public void ProductsRoundTrip()
     {
         var schema = _catalog.TShirtSchema();
