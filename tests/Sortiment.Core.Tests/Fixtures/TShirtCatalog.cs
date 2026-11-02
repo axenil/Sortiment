@@ -17,7 +17,7 @@ internal sealed class TShirtCatalog
         Print = Channel.Create(ChannelCode.Parse("print"), [Swedish]).Value;
 
         Name = AttributeDefinition.Create(AttributeCode.Parse("name"), AttributeType.Text, isLocalizable: true).Value;
-        Name.SettingsAs<TextSettings>().SetMaxLength(150);
+        Name.SettingsAs<TextSettings>().SetMaxLength(150).ShouldSucceed();
 
         Description = AttributeDefinition.Create(
             AttributeCode.Parse("description"),
@@ -36,17 +36,17 @@ internal sealed class TShirtCatalog
         TShirts = Family.Create(FamilyCode.Parse("t_shirts")).Value;
         foreach (var attribute in new[] { Name, Description, Color, Weight, Gtin })
         {
-            TShirts.AddAttribute(attribute);
+            TShirts.AddAttribute(attribute).ShouldSucceed();
         }
 
-        TShirts.RequireAttribute(Name, Ecommerce.Id);
-        TShirts.RequireAttribute(Description, Ecommerce.Id);
-        TShirts.RequireAttribute(Color, Ecommerce.Id);
-        TShirts.RequireAttribute(Name, Print.Id);
+        TShirts.RequireAttribute(Name, Ecommerce.Id).ShouldSucceed();
+        TShirts.RequireAttribute(Description, Ecommerce.Id).ShouldSucceed();
+        TShirts.RequireAttribute(Color, Ecommerce.Id).ShouldSucceed();
+        TShirts.RequireAttribute(Name, Print.Id).ShouldSucceed();
 
         Accessories = Family.Create(FamilyCode.Parse("accessories")).Value;
-        Accessories.AddAttribute(Name);
-        Accessories.AddAttribute(Warranty);
+        Accessories.AddAttribute(Name).ShouldSucceed();
+        Accessories.AddAttribute(Warranty).ShouldSucceed();
     }
 
     public static Locale Swedish { get; } = Locale.Parse("sv-SE");

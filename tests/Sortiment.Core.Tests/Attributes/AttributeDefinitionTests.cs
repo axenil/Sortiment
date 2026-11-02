@@ -1,4 +1,5 @@
 using Sortiment.Core.Attributes;
+using Sortiment.Core.Tests.Fixtures;
 
 namespace Sortiment.Core.Tests.Attributes;
 
@@ -153,7 +154,7 @@ public sealed class AttributeDefinitionTests
         var attribute = AttributeDefinition.Create(Color, AttributeType.SingleSelect).Value;
 
         var red = attribute.SettingsAs<SelectSettings>().AddOption(Red).Value;
-        attribute.SettingsAs<SelectSettings>().AddOption(Blue);
+        attribute.SettingsAs<SelectSettings>().AddOption(Blue).ShouldSucceed();
 
         red.Code.ShouldBe(Red);
         attribute.SettingsAs<SelectSettings>().Options.Select(option => option.Code).ShouldBe([Red, Blue]);
@@ -163,7 +164,7 @@ public sealed class AttributeDefinitionTests
     public void AddOptionRejectsADuplicateCode()
     {
         var attribute = AttributeDefinition.Create(Color, AttributeType.MultiSelect).Value;
-        attribute.SettingsAs<SelectSettings>().AddOption(Red);
+        attribute.SettingsAs<SelectSettings>().AddOption(Red).ShouldSucceed();
 
         var result = attribute.SettingsAs<SelectSettings>().AddOption(AttributeOptionCode.Parse("red"));
 
@@ -177,8 +178,8 @@ public sealed class AttributeDefinitionTests
     public void RemoveOptionRemovesTheOption()
     {
         var attribute = AttributeDefinition.Create(Color, AttributeType.SingleSelect).Value;
-        attribute.SettingsAs<SelectSettings>().AddOption(Red);
-        attribute.SettingsAs<SelectSettings>().AddOption(Blue);
+        attribute.SettingsAs<SelectSettings>().AddOption(Red).ShouldSucceed();
+        attribute.SettingsAs<SelectSettings>().AddOption(Blue).ShouldSucceed();
 
         var result = attribute.SettingsAs<SelectSettings>().RemoveOption(Red);
 

@@ -1,5 +1,6 @@
 using Sortiment.Core.Attributes;
 using Sortiment.Core.Families;
+using Sortiment.Core.Tests.Fixtures;
 
 namespace Sortiment.Core.Tests.Families;
 
@@ -12,8 +13,8 @@ public sealed class FamilySchemaTests
 
     public FamilySchemaTests()
     {
-        _family.AddAttribute(_name);
-        _family.AddAttribute(_description);
+        _family.AddAttribute(_name).ShouldSucceed();
+        _family.AddAttribute(_description).ShouldSucceed();
     }
 
     [Fact]
@@ -52,7 +53,7 @@ public sealed class FamilySchemaTests
     {
         var schema = FamilySchema.Create(_family, [_name, _description]).Value;
 
-        _family.RemoveAttribute(_name.Id);
+        _family.RemoveAttribute(_name.Id).ShouldSucceed();
 
         schema.Attributes.ShouldBe([_description]);
         schema.FindAttribute(_name.Id).ShouldBeNull();
@@ -64,7 +65,7 @@ public sealed class FamilySchemaTests
     {
         var schema = FamilySchema.Create(_family, [_name, _description]).Value;
 
-        _family.AddAttribute(_material);
+        _family.AddAttribute(_material).ShouldSucceed();
 
         schema.Attributes.ShouldBe([_name, _description]);
         schema.FindAttribute(_material.Id).ShouldBeNull();
