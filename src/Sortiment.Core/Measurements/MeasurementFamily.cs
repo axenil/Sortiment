@@ -13,14 +13,20 @@ namespace Sortiment.Core.Measurements;
 /// </remarks>
 public sealed class MeasurementFamily
 {
-    private MeasurementFamily(MeasurementFamilyCode code, MeasurementUnit[] units)
+    private MeasurementFamily(MeasurementFamilyId id, MeasurementFamilyCode code, MeasurementUnit[] units)
     {
+        Id = id;
         Code = code;
         Units = units.AsReadOnly();
     }
 
     /// <summary>
-    /// Gets the code of the family.
+    /// Gets the identity of the family.
+    /// </summary>
+    public MeasurementFamilyId Id { get; }
+
+    /// <summary>
+    /// Gets the code that imports, feeds and the API use to refer to the family.
     /// </summary>
     public MeasurementFamilyCode Code { get; }
 
@@ -30,16 +36,39 @@ public sealed class MeasurementFamily
     public ReadOnlyCollection<MeasurementUnit> Units { get; }
 
     /// <summary>
-    /// Creates a measurement family.
+    /// Creates a new measurement family.
     /// </summary>
     /// <param name="code">The family's code.</param>
     /// <param name="units">The family's units, in display order.</param>
     /// <returns>
-    /// The family, or the errors <c>measurement_family.unit_required</c> if no unit is given,
-    /// <c>measurement_family.duplicate_unit</c> for each repeated unit code and
+    /// The new family, or the errors <c>measurement_family.unit_required</c> if no unit is given,
+    /// <c>measurement_family.duplicate_unit</c> for each repeated unit code,
+    /// <c>measurement_family.duplicate_unit_id</c> for each repeated unit ID and
     /// <c>measurement_family.invalid_conversion_factor</c> for each factor that is not greater than zero.
     /// </returns>
-    public static Result<MeasurementFamily> Create(MeasurementFamilyCode code, IEnumerable<MeasurementUnit> units)
+    public static Result<MeasurementFamily> Create(MeasurementFamilyCode code, IEnumerable<MeasurementUnit> units) =>
+        Build(MeasurementFamilyId.New(), code, units);
+
+    /// <summary>
+    /// Restores a measurement family from stored state (ADR 0011).
+    /// </summary>
+    /// <param name="id">The family's ID.</param>
+    /// <param name="code">The family's code.</param>
+    /// <param name="units">The family's units, in display order.</param>
+    /// <returns>The family.</returns>
+    /// <exception cref="ArgumentException">
+    /// The family has no units, a repeated unit code or ID, or a conversion factor that is not greater than zero.
+    /// </exception>
+    public static MeasurementFamily Restore(
+        MeasurementFamilyId id,
+        MeasurementFamilyCode code,
+        IEnumerable<MeasurementUnit> units) =>
+        CodeRules.ValueOrThrow(Build(id, code, units), nameof(units));
+
+    private static Result<MeasurementFamily> Build(
+        MeasurementFamilyId id,
+        MeasurementFamilyCode code,
+        IEnumerable<MeasurementUnit> units)
     {
         ArgumentNullException.ThrowIfNull(code);
         ArgumentNullException.ThrowIfNull(units);
@@ -51,13 +80,19 @@ public sealed class MeasurementFamily
             errors.Add(MeasurementErrors.UnitRequired(code));
         }
 
-        var seen = new HashSet<UnitCode>();
+        var seenCodes = new HashSet<UnitCode>();
+        var seenIds = new HashSet<MeasurementUnitId>();
         foreach (var unit in unitList)
         {
             ArgumentNullException.ThrowIfNull(unit, nameof(units));
-            if (!seen.Add(unit.Code))
+            if (!seenCodes.Add(unit.Code))
             {
                 errors.Add(MeasurementErrors.DuplicateUnit(code, unit.Code));
+            }
+
+            if (!seenIds.Add(unit.Id))
+            {
+                errors.Add(MeasurementErrors.DuplicateUnitId(code, unit.Id));
             }
 
             if (unit.ConversionFactor <= 0)
@@ -67,12 +102,12 @@ public sealed class MeasurementFamily
         }
 
         return errors.Count == 0
-            ? Result.Success(new MeasurementFamily(code, unitList))
+            ? Result.Success(new MeasurementFamily(id, code, unitList))
             : Result.Failure<MeasurementFamily>(errors);
     }
 
     /// <summary>
-    /// Finds a unit by code.
+    /// Finds a unit by code, for example to resolve a unit given in an import or an API request.
     /// </summary>
     /// <param name="code">The unit's code.</param>
     /// <returns>The unit, or <see langword="null"/> if the family has no such unit.</returns>
@@ -84,18 +119,24 @@ public sealed class MeasurementFamily
     }
 
     /// <summary>
+    /// Finds a unit by ID, for example the unit of a <see cref="MeasurementValue"/>.
+    /// </summary>
+    /// <param name="id">The unit's ID.</param>
+    /// <returns>The unit, or <see langword="null"/> if the family has no such unit.</returns>
+    public MeasurementUnit? FindUnit(MeasurementUnitId id) => Units.FirstOrDefault(unit => unit.Id == id);
+
+    /// <summary>
     /// Converts a measurement to another unit of this family.
     /// </summary>
     /// <param name="value">The measurement to convert.</param>
-    /// <param name="targetUnit">The unit to convert to.</param>
+    /// <param name="targetUnit">The ID of the unit to convert to.</param>
     /// <returns>
     /// The converted measurement, or the error <c>measurement_family.unknown_unit</c> for each unit that is not part
     /// of this family.
     /// </returns>
-    public Result<MeasurementValue> Convert(MeasurementValue value, UnitCode targetUnit)
+    public Result<MeasurementValue> Convert(MeasurementValue value, MeasurementUnitId targetUnit)
     {
         ArgumentNullException.ThrowIfNull(value);
-        ArgumentNullException.ThrowIfNull(targetUnit);
 
         var source = FindUnit(value.Unit);
         var target = FindUnit(targetUnit);

@@ -70,6 +70,11 @@ public static class ErrorContextKeys
     public const string Unit = "unit";
 
     /// <summary>
+    /// The ID of the measurement unit the error relates to, where its code is not known.
+    /// </summary>
+    public const string UnitId = "unit_id";
+
+    /// <summary>
     /// The invalid input value.
     /// </summary>
     public const string Value = "value";

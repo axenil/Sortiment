@@ -81,13 +81,13 @@ internal static class ValueErrors
                 $"The value of attribute '{attribute.Code}' selects option {(knownOption is null ? option.ToString() : $"'{knownOption.Code}'")} more than once.")
             .WithContext(ErrorContextKeys.Value, option.ToString());
 
-    public static ResultError UnknownUnit(AttributeDefinition attribute, MeasurementFamily family, UnitCode unit) =>
+    public static ResultError UnknownUnit(AttributeDefinition attribute, MeasurementFamily family, MeasurementUnitId unit) =>
         Create(
                 attribute,
                 "value.unknown_unit",
-                $"Attribute '{attribute.Code}' measures {family.Code}, which has no unit '{unit}'.")
+                $"Attribute '{attribute.Code}' measures {family.Code}, which has no unit with the ID {unit}.")
             .WithContext(ErrorContextKeys.MeasurementFamily, family.Code.Value)
-            .WithContext(ErrorContextKeys.Unit, unit.Value);
+            .WithContext(ErrorContextKeys.UnitId, unit.ToString());
 
     public static ResultError DuplicateAsset(AttributeDefinition attribute, AssetId asset) =>
         Create(

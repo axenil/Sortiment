@@ -1,5 +1,6 @@
 using Sortiment.Core.Attributes;
 using Sortiment.Core.Measurements;
+using Sortiment.Core.Tests.Fixtures;
 using Sortiment.Core.Values;
 
 namespace Sortiment.Core.Tests.Attributes;
@@ -7,6 +8,7 @@ namespace Sortiment.Core.Tests.Attributes;
 public sealed class MeasurementAttributeTests
 {
     private static readonly AttributeCode NetWeight = AttributeCode.Parse("net_weight");
+    private static readonly MeasurementUnitId Centimeter = MeasurementFamilies.Length.UnitId("cm");
 
     [Fact]
     public void CreateMeasurementReturnsAMeasurementAttributeWithItsFamily()
@@ -50,7 +52,7 @@ public sealed class MeasurementAttributeTests
     {
         var attribute = AttributeDefinition.CreateMeasurement(NetWeight, MeasurementFamilies.Weight).Value;
 
-        attribute.Validate(new MeasurementValue(1.2m, UnitCode.Parse(unit)), ValueScope.Global).IsSuccess.ShouldBeTrue();
+        attribute.Validate(new MeasurementValue(1.2m, MeasurementFamilies.Weight.UnitId(unit)), ValueScope.Global).IsSuccess.ShouldBeTrue();
     }
 
     [Fact]
@@ -58,13 +60,13 @@ public sealed class MeasurementAttributeTests
     {
         var attribute = AttributeDefinition.CreateMeasurement(NetWeight, MeasurementFamilies.Weight).Value;
 
-        var error = attribute.Validate(new MeasurementValue(1.2m, UnitCode.Parse("cm")), ValueScope.Global).Errors
+        var error = attribute.Validate(new MeasurementValue(1.2m, Centimeter), ValueScope.Global).Errors
             .ShouldHaveSingleItem();
 
         error.Code.ShouldBe("value.unknown_unit");
         error.Context[ErrorContextKeys.Attribute].ShouldBe("net_weight");
         error.Context[ErrorContextKeys.MeasurementFamily].ShouldBe("weight");
-        error.Context[ErrorContextKeys.Unit].ShouldBe("cm");
+        error.Context[ErrorContextKeys.UnitId].ShouldBe(Centimeter.ToString());
     }
 
     [Fact]
