@@ -10,7 +10,7 @@ internal static class AssetErrors
     public static ResultError InvalidFileName(string fileName) =>
         new ResultError(
                 "asset_file.invalid_file_name",
-                $"File name '{fileName}' must be at most {AssetFile.MaxFileNameLength} characters long and cannot contain a directory or control characters.")
+                $"File name '{fileName}' must be at most {AssetFile.MaxFileNameLength} characters long and cannot contain a directory, control characters or invisible formatting characters.")
             .WithContext(ErrorContextKeys.Value, fileName);
 
     public static ResultError EmptyFile() =>

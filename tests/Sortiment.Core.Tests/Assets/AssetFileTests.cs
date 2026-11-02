@@ -35,6 +35,8 @@ public sealed class AssetFileTests
     [InlineData("images/front.jpg", "asset_file.invalid_file_name")]
     [InlineData("images\\front.jpg", "asset_file.invalid_file_name")]
     [InlineData("front\n.jpg", "asset_file.invalid_file_name")]
+    [InlineData("manual‮fdp.exe", "asset_file.invalid_file_name")]
+    [InlineData("front​.jpg", "asset_file.invalid_file_name")]
     public void CreateRejectsInvalidFileNames(string? fileName, string expectedCode)
     {
         AssetFile.Create(Key, fileName, Jpeg, 10, Checksum).Errors.ShouldHaveSingleItem().Code.ShouldBe(expectedCode);

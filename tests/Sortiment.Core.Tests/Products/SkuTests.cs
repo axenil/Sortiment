@@ -47,6 +47,9 @@ public sealed class SkuTests
     [InlineData("TS-001 ", "sku.surrounding_whitespace")]
     [InlineData("TS\n001", "sku.invalid_characters")]
     [InlineData("TS\t001", "sku.invalid_characters")]
+    [InlineData("TS-001​", "sku.invalid_characters")]
+    [InlineData("TS-‮100", "sku.invalid_characters")]
+    [InlineData("﻿TS-001", "sku.invalid_characters")]
     public void CreateRejectsInvalidSkus(string? value, string expectedCode)
     {
         Sku.Create(value).Errors.ShouldHaveSingleItem().Code.ShouldBe(expectedCode);
