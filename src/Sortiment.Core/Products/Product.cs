@@ -14,7 +14,7 @@ namespace Sortiment.Core.Products;
 /// </remarks>
 public sealed class Product
 {
-    private readonly Dictionary<(AttributeId Attribute, ValueScope Scope), AttributeValue> _values = [];
+    private readonly ValueSet _values = new();
 
     private Product(ProductId id, Sku sku, FamilyId familyId)
     {
@@ -47,8 +47,7 @@ public sealed class Product
     /// <summary>
     /// Gets the product's values.
     /// </summary>
-    public IReadOnlyList<ProductValue> Values =>
-        _values.Select(pair => new ProductValue(pair.Key.Attribute, pair.Key.Scope, pair.Value)).ToList().AsReadOnly();
+    public IReadOnlyList<ProductValue> Values => _values.Values;
 
     /// <summary>
     /// Creates a new, enabled product without values.
@@ -92,7 +91,7 @@ public sealed class Product
             ArgumentNullException.ThrowIfNull(value, nameof(values));
             ArgumentNullException.ThrowIfNull(value.Scope, nameof(values));
             ArgumentNullException.ThrowIfNull(value.Value, nameof(values));
-            if (!product._values.TryAdd((value.Attribute, value.Scope), value.Value))
+            if (!product._values.TryRestore(value))
             {
                 problems.Add($"Attribute {value.Attribute} has more than one value in scope {value.Scope}.");
             }
@@ -133,7 +132,7 @@ public sealed class Product
     {
         ArgumentNullException.ThrowIfNull(scope);
 
-        return _values.GetValueOrDefault((attribute, scope));
+        return _values.Get(attribute, scope);
     }
 
     /// <summary>
@@ -161,14 +160,8 @@ public sealed class Product
             return Result.Failure(ProductErrors.AttributeNotInFamily(this, schema.Family, attribute));
         }
 
-        var validation = definition.Validate(value, scope);
-        if (validation.IsFailure)
-        {
-            return Result.Failure(validation.Errors.Select(AddProductContext));
-        }
-
-        _values[(definition.Id, scope)] = value;
-        return Result.Success();
+        var result = _values.SetIfValid(definition, scope, value);
+        return result.IsSuccess ? result : Result.Failure(result.Errors.Select(AddProductContext));
     }
 
     /// <summary>
@@ -181,7 +174,7 @@ public sealed class Product
     {
         ArgumentNullException.ThrowIfNull(scope);
 
-        return _values.Remove((attribute, scope));
+        return _values.Remove(attribute, scope);
     }
 
     /// <summary>
@@ -196,7 +189,7 @@ public sealed class Product
         var removed = Values.Where(value => schema.FindAttribute(value.Attribute) is null).ToList();
         foreach (var value in removed)
         {
-            _values.Remove((value.Attribute, value.Scope));
+            _values.Remove(value.Attribute, value.Scope);
         }
 
         FamilyId = schema.Family.Id;
@@ -219,7 +212,7 @@ public sealed class Product
         EnsureOwnFamily(schema);
 
         var errors = new List<ResultError>();
-        foreach (var ((attributeId, scope), value) in _values)
+        foreach (var (attributeId, scope, value) in _values.Values)
         {
             var definition = schema.FindAttribute(attributeId);
             if (definition is null)
@@ -255,7 +248,7 @@ public sealed class Product
         return CompletenessCalculator.Calculate(schema.RequiredAttributes(channel.Id), channel, HasValue);
     }
 
-    private bool HasValue(AttributeId attribute, ValueScope scope) => _values.ContainsKey((attribute, scope));
+    private bool HasValue(AttributeId attribute, ValueScope scope) => _values.Has(attribute, scope);
 
     private void EnsureOwnFamily(FamilySchema schema)
     {
