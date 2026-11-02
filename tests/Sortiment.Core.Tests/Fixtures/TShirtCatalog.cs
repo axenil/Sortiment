@@ -29,12 +29,16 @@ internal sealed class TShirtCatalog
         Red = Color.SettingsAs<SelectSettings>().AddOption(AttributeOptionCode.Parse("red")).Value;
         Blue = Color.SettingsAs<SelectSettings>().AddOption(AttributeOptionCode.Parse("blue")).Value;
 
+        Size = AttributeDefinition.Create(AttributeCode.Parse("size"), AttributeType.SingleSelect).Value;
+        Small = Size.SettingsAs<SelectSettings>().AddOption(AttributeOptionCode.Parse("s")).Value;
+        Medium = Size.SettingsAs<SelectSettings>().AddOption(AttributeOptionCode.Parse("m")).Value;
+
         Weight = AttributeDefinition.CreateMeasurement(AttributeCode.Parse("weight"), MeasurementFamilies.Weight).Value;
         Gtin = AttributeDefinition.Create(AttributeCode.Parse("gtin"), AttributeType.Identifier).Value;
         Warranty = AttributeDefinition.Create(AttributeCode.Parse("warranty_years"), AttributeType.Number).Value;
 
         TShirts = Family.Create(FamilyCode.Parse("t_shirts")).Value;
-        foreach (var attribute in new[] { Name, Description, Color, Weight, Gtin })
+        foreach (var attribute in new[] { Name, Description, Color, Size, Weight, Gtin })
         {
             TShirts.AddAttribute(attribute).ShouldSucceed();
         }
@@ -67,6 +71,12 @@ internal sealed class TShirtCatalog
 
     public AttributeOption Blue { get; }
 
+    public AttributeDefinition Size { get; }
+
+    public AttributeOption Small { get; }
+
+    public AttributeOption Medium { get; }
+
     public AttributeDefinition Weight { get; }
 
     public AttributeDefinition Gtin { get; }
@@ -77,7 +87,7 @@ internal sealed class TShirtCatalog
 
     public Family Accessories { get; }
 
-    public IReadOnlyList<AttributeDefinition> AllAttributes => [Name, Description, Color, Weight, Gtin, Warranty];
+    public IReadOnlyList<AttributeDefinition> AllAttributes => [Name, Description, Color, Size, Weight, Gtin, Warranty];
 
     public FamilySchema TShirtSchema() => FamilySchema.Create(TShirts, AllAttributes).Value;
 
