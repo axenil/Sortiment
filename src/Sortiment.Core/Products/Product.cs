@@ -86,6 +86,7 @@ public sealed class Product
         ArgumentNullException.ThrowIfNull(values);
 
         var product = new Product(id, sku, familyId) { IsEnabled = isEnabled };
+        var problems = new RestoreProblems();
         foreach (var value in values)
         {
             ArgumentNullException.ThrowIfNull(value, nameof(values));
@@ -93,12 +94,11 @@ public sealed class Product
             ArgumentNullException.ThrowIfNull(value.Value, nameof(values));
             if (!product._values.TryAdd((value.Attribute, value.Scope), value.Value))
             {
-                throw new ArgumentException(
-                    $"Product '{sku}' has more than one value for attribute {value.Attribute} in the same scope.",
-                    nameof(values));
+                problems.Add($"Attribute {value.Attribute} has more than one value in scope {value.Scope}.");
             }
         }
 
+        problems.ThrowIfAny($"Product '{sku}'", nameof(values));
         return product;
     }
 

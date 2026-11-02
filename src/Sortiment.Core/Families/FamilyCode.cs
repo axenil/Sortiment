@@ -31,7 +31,7 @@ public sealed record FamilyCode
     /// <param name="value">The code.</param>
     /// <returns>The code.</returns>
     /// <exception cref="ArgumentException"><paramref name="value"/> is not a valid code.</exception>
-    public static FamilyCode Parse(string value) => CodeRules.ValueOrThrow(Create(value), nameof(value));
+    public static FamilyCode Parse(string value) => Create(value).ValueOrThrow(nameof(value));
 
     /// <inheritdoc />
     public override string ToString() => Value;

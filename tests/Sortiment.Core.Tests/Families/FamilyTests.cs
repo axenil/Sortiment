@@ -64,6 +64,25 @@ public sealed class FamilyTests
     }
 
     [Fact]
+    public void RestoreReportsEveryProblemInOneException()
+    {
+        var exception = Should.Throw<ArgumentException>(() => Family.Restore(
+            FamilyId.New(),
+            TShirts,
+            [_name.Id, _name.Id],
+            new Dictionary<ChannelId, IReadOnlySet<AttributeId>>
+            {
+                [Ecommerce] = new HashSet<AttributeId> { _material.Id },
+                [Print] = new HashSet<AttributeId> { _description.Id },
+            }));
+
+        exception.Message.ShouldStartWith("Family 't_shirts' cannot be restored.");
+        exception.Message.ShouldContain($"Attribute {_name.Id} is listed more than once.");
+        exception.Message.ShouldContain($"Channel {Ecommerce} requires attribute {_material.Id}");
+        exception.Message.ShouldContain($"Channel {Print} requires attribute {_description.Id}");
+    }
+
+    [Fact]
     public void AddAttributeKeepsTheAttributesInOrder()
     {
         var family = Family.Create(TShirts).Value;

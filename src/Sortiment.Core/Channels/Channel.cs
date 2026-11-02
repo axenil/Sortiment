@@ -54,7 +54,7 @@ public sealed class Channel
     /// <returns>The channel.</returns>
     /// <exception cref="ArgumentException">The channel has no locales or the same locale more than once.</exception>
     public static Channel Restore(ChannelId id, ChannelCode code, IEnumerable<Locale> locales) =>
-        CodeRules.ValueOrThrow(Build(id, code, locales), nameof(locales));
+        Build(id, code, locales).ValueOrThrow(nameof(locales));
 
     private static Result<Channel> Build(ChannelId id, ChannelCode code, IEnumerable<Locale> locales)
     {

@@ -49,7 +49,7 @@ public sealed partial record Locale
     /// <param name="code">The BCP 47 tag.</param>
     /// <returns>The locale.</returns>
     /// <exception cref="ArgumentException"><paramref name="code"/> is not a valid tag.</exception>
-    public static Locale Parse(string code) => CodeRules.ValueOrThrow(Create(code), nameof(code));
+    public static Locale Parse(string code) => Create(code).ValueOrThrow(nameof(code));
 
     /// <inheritdoc />
     public override string ToString() => Code;

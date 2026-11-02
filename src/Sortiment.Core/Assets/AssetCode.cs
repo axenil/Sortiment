@@ -36,7 +36,7 @@ public sealed record AssetCode
     /// <param name="value">The code.</param>
     /// <returns>The code.</returns>
     /// <exception cref="ArgumentException"><paramref name="value"/> is not a valid code.</exception>
-    public static AssetCode Parse(string value) => CodeRules.ValueOrThrow(Create(value), nameof(value));
+    public static AssetCode Parse(string value) => Create(value).ValueOrThrow(nameof(value));
 
     /// <summary>
     /// Derives a code from a file name, for example <c>TS001-Front.jpg</c> becomes <c>ts001_front</c>.
