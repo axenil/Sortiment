@@ -1,4 +1,5 @@
 using Sortiment.Core.Attributes;
+using Sortiment.Core.Channels;
 using Sortiment.Core.Families;
 using Sortiment.Core.Values;
 
@@ -194,6 +195,45 @@ public sealed class Product
 
         return errors.Count == 0 ? Result.Success() : Result.Failure(errors);
     }
+
+    /// <summary>
+    /// Calculates how complete the product is for a channel: for each locale active in the channel, which of the
+    /// attributes the family requires for the channel have a value.
+    /// </summary>
+    /// <remarks>
+    /// A required attribute is filled when the product has a value in the matching scope: the locale if the attribute
+    /// is localizable, and the channel if it is scopable. Only presence counts; use <see cref="Validate"/> to check
+    /// that values are valid.
+    /// </remarks>
+    /// <param name="schema">The schema of the product's family.</param>
+    /// <param name="channel">The channel.</param>
+    /// <returns>The completeness per locale active in the channel.</returns>
+    /// <exception cref="ArgumentException"><paramref name="schema"/> is not the schema of the product's family.</exception>
+    public ChannelCompleteness CalculateCompleteness(FamilySchema schema, Channel channel)
+    {
+        EnsureOwnFamily(schema);
+        ArgumentNullException.ThrowIfNull(channel);
+
+        var required = schema.Family.RequiredAttributes(channel.Id)
+            .Select(id => schema.FindAttribute(id))
+            .OfType<AttributeDefinition>()
+            .ToList();
+
+        var locales = channel.Locales
+            .Select(locale => new LocaleCompleteness(
+                locale,
+                required.Count,
+                required
+                    .Where(attribute => !_values.ContainsKey((attribute.Id, ScopeFor(attribute, locale, channel.Id))))
+                    .Select(attribute => attribute.Code)
+                    .ToList()))
+            .ToList();
+
+        return new ChannelCompleteness(channel.Id, locales);
+    }
+
+    private static ValueScope ScopeFor(AttributeDefinition attribute, Locale locale, ChannelId channel) =>
+        new(attribute.IsLocalizable ? locale : null, attribute.IsScopable ? channel : null);
 
     private void EnsureOwnFamily(FamilySchema schema)
     {
