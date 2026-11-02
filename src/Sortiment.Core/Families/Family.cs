@@ -58,6 +58,60 @@ public sealed class Family
     }
 
     /// <summary>
+    /// Restores a family from stored state (ADR 0011).
+    /// </summary>
+    /// <param name="id">The family's ID.</param>
+    /// <param name="code">The family's code.</param>
+    /// <param name="attributes">The IDs of the family's attributes, in display order.</param>
+    /// <param name="requirements">The attributes each channel requires, as in <see cref="Requirements"/>.</param>
+    /// <returns>The family.</returns>
+    /// <exception cref="ArgumentException">
+    /// An attribute is listed more than once, or a channel requires an attribute that is not in the family.
+    /// </exception>
+    public static Family Restore(
+        FamilyId id,
+        FamilyCode code,
+        IEnumerable<AttributeId> attributes,
+        IReadOnlyDictionary<ChannelId, IReadOnlySet<AttributeId>> requirements)
+    {
+        ArgumentNullException.ThrowIfNull(code);
+        ArgumentNullException.ThrowIfNull(attributes);
+        ArgumentNullException.ThrowIfNull(requirements);
+
+        var family = new Family(id, code);
+        var problems = new List<string>();
+        foreach (var attribute in attributes)
+        {
+            if (family.HasAttribute(attribute))
+            {
+                problems.Add($"Attribute {attribute} is listed more than once.");
+            }
+            else
+            {
+                family._attributes.Add(attribute);
+            }
+        }
+
+        foreach (var (channel, required) in requirements)
+        {
+            ArgumentNullException.ThrowIfNull(required, nameof(requirements));
+            problems.AddRange(required
+                .Where(attribute => !family.HasAttribute(attribute))
+                .Select(attribute => $"Channel {channel} requires attribute {attribute}, which is not in the family."));
+            family._requirements[channel] = required.Where(family.HasAttribute).ToHashSet();
+        }
+
+        if (problems.Count > 0)
+        {
+            throw new ArgumentException(
+                $"Family '{code}' cannot be restored. {string.Join(" ", problems)}",
+                nameof(attributes));
+        }
+
+        return family;
+    }
+
+    /// <summary>
     /// Gets a value indicating whether an attribute is in the family.
     /// </summary>
     /// <param name="attribute">The attribute's ID.</param>
