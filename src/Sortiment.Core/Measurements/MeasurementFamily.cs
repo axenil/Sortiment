@@ -63,7 +63,7 @@ public sealed class MeasurementFamily
         MeasurementFamilyId id,
         MeasurementFamilyCode code,
         IEnumerable<MeasurementUnit> units) =>
-        CodeRules.ValueOrThrow(Build(id, code, units), nameof(units));
+        Build(id, code, units).ValueOrThrow(nameof(units));
 
     private static Result<MeasurementFamily> Build(
         MeasurementFamilyId id,

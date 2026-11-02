@@ -31,7 +31,7 @@ public sealed record AttributeOptionCode
     /// <param name="value">The code.</param>
     /// <returns>The code.</returns>
     /// <exception cref="ArgumentException"><paramref name="value"/> is not a valid code.</exception>
-    public static AttributeOptionCode Parse(string value) => CodeRules.ValueOrThrow(Create(value), nameof(value));
+    public static AttributeOptionCode Parse(string value) => Create(value).ValueOrThrow(nameof(value));
 
     /// <inheritdoc />
     public override string ToString() => Value;

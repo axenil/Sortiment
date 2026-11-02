@@ -37,11 +37,6 @@ internal static class CodeRules
         return errors.Count == 0 ? Result.Success(value) : Result.Failure<string>(errors);
     }
 
-    public static T ValueOrThrow<T>(Result<T> result, string parameterName) =>
-        result.IsSuccess
-            ? result.Value
-            : throw new ArgumentException(string.Join(" ", result.Errors.Select(error => error.Message)), parameterName);
-
     private static bool IsAllowedCharacter(char character) =>
         character is (>= 'a' and <= 'z') or (>= '0' and <= '9') or '_';
 }

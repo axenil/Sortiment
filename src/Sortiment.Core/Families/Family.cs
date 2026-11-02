@@ -79,7 +79,7 @@ public sealed class Family
         ArgumentNullException.ThrowIfNull(requirements);
 
         var family = new Family(id, code);
-        var problems = new List<string>();
+        var problems = new RestoreProblems();
         foreach (var attribute in attributes)
         {
             if (family.HasAttribute(attribute))
@@ -95,19 +95,15 @@ public sealed class Family
         foreach (var (channel, required) in requirements)
         {
             ArgumentNullException.ThrowIfNull(required, nameof(requirements));
-            problems.AddRange(required
-                .Where(attribute => !family.HasAttribute(attribute))
-                .Select(attribute => $"Channel {channel} requires attribute {attribute}, which is not in the family."));
-            family._requirements[channel] = required.Where(family.HasAttribute).ToHashSet();
+            foreach (var attribute in required.Where(attribute => !family.HasAttribute(attribute)))
+            {
+                problems.Add($"Channel {channel} requires attribute {attribute}, which is not in the family.");
+            }
+
+            family._requirements[channel] = required.ToHashSet();
         }
 
-        if (problems.Count > 0)
-        {
-            throw new ArgumentException(
-                $"Family '{code}' cannot be restored. {string.Join(" ", problems)}",
-                nameof(attributes));
-        }
-
+        problems.ThrowIfAny($"Family '{code}'", nameof(attributes));
         return family;
     }
 

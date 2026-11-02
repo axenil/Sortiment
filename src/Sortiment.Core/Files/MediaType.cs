@@ -58,7 +58,7 @@ public sealed partial record MediaType
     /// <param name="value">The media type.</param>
     /// <returns>The media type.</returns>
     /// <exception cref="ArgumentException"><paramref name="value"/> is not a valid media type.</exception>
-    public static MediaType Parse(string value) => CodeRules.ValueOrThrow(Create(value), nameof(value));
+    public static MediaType Parse(string value) => Create(value).ValueOrThrow(nameof(value));
 
     /// <inheritdoc />
     public override string ToString() => $"{Type}/{Subtype}";

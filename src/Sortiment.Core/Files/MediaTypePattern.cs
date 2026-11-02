@@ -61,7 +61,7 @@ public sealed record MediaTypePattern
     /// <param name="value">The pattern.</param>
     /// <returns>The pattern.</returns>
     /// <exception cref="ArgumentException"><paramref name="value"/> is not a valid pattern.</exception>
-    public static MediaTypePattern Parse(string value) => CodeRules.ValueOrThrow(Create(value), nameof(value));
+    public static MediaTypePattern Parse(string value) => Create(value).ValueOrThrow(nameof(value));
 
     /// <summary>
     /// Gets a value indicating whether a media type matches the pattern.

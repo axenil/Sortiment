@@ -63,7 +63,7 @@ public sealed record Sku
     /// <param name="value">The SKU.</param>
     /// <returns>The SKU.</returns>
     /// <exception cref="ArgumentException"><paramref name="value"/> is not a valid SKU.</exception>
-    public static Sku Parse(string value) => CodeRules.ValueOrThrow(Create(value), nameof(value));
+    public static Sku Parse(string value) => Create(value).ValueOrThrow(nameof(value));
 
     /// <summary>
     /// Compares SKUs without regard to casing.

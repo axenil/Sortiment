@@ -75,7 +75,7 @@ public sealed class AssetFamily
     {
         ArgumentNullException.ThrowIfNull(allowedMediaTypes);
 
-        return CodeRules.ValueOrThrow(Build(id, code, allowedMediaTypes, maxFileSize), nameof(allowedMediaTypes));
+        return Build(id, code, allowedMediaTypes, maxFileSize).ValueOrThrow(nameof(allowedMediaTypes));
     }
 
     private static Result<AssetFamily> Build(

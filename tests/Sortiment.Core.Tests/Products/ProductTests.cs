@@ -254,6 +254,26 @@ public sealed class ProductTests
             ]));
     }
 
+    [Fact]
+    public void RestoreReportsEveryDuplicateValueInOneException()
+    {
+        var exception = Should.Throw<ArgumentException>(() => Product.Restore(
+            ProductId.New(),
+            _sku,
+            _catalog.TShirts.Id,
+            isEnabled: true,
+            [
+                new(_catalog.Color.Id, ValueScope.Global, new SingleSelectValue(_catalog.Red.Id)),
+                new(_catalog.Color.Id, ValueScope.Global, new SingleSelectValue(_catalog.Blue.Id)),
+                new(_catalog.Name.Id, ValueScope.ForLocale(Swedish), new TextValue("Linneskjorta")),
+                new(_catalog.Name.Id, ValueScope.ForLocale(Swedish), new TextValue("Skjorta")),
+            ]));
+
+        exception.Message.ShouldStartWith("Product 'TS-001' cannot be restored.");
+        exception.Message.ShouldContain($"Attribute {_catalog.Color.Id} has more than one value");
+        exception.Message.ShouldContain($"Attribute {_catalog.Name.Id} has more than one value");
+    }
+
     private Product NewProduct() => Product.Create(_sku, _catalog.TShirtSchema()).Value;
 
     private static AttributeCode Code(string value) => AttributeCode.Parse(value);

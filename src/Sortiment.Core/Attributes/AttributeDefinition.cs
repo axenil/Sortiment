@@ -110,7 +110,7 @@ public sealed class AttributeDefinition
         AttributeType type,
         bool isLocalizable,
         bool isScopable) =>
-        CodeRules.ValueOrThrow(Build(id, code, type, isLocalizable, isScopable), nameof(type));
+        Build(id, code, type, isLocalizable, isScopable).ValueOrThrow(nameof(type));
 
     /// <summary>
     /// Creates a new measurement attribute. The measurement family cannot change after the attribute is created.
