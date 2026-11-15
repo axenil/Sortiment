@@ -70,6 +70,16 @@ public static class ErrorContextKeys
     public const string Asset = "asset";
 
     /// <summary>
+    /// The code of the category tree the error relates to.
+    /// </summary>
+    public const string CategoryTree = "category_tree";
+
+    /// <summary>
+    /// The code of the category the error relates to.
+    /// </summary>
+    public const string Category = "category";
+
+    /// <summary>
     /// The code of the measurement family the error relates to.
     /// </summary>
     public const string MeasurementFamily = "measurement_family";

@@ -1,5 +1,6 @@
 using Sortiment.Core.Assets;
 using Sortiment.Core.Attributes;
+using Sortiment.Core.Categories;
 using Sortiment.Core.Channels;
 using Sortiment.Core.Families;
 using Sortiment.Core.Measurements;
@@ -57,6 +58,23 @@ public sealed class RestoreRoundTripTests
             restored.IsLocalizable.ShouldBe(attribute.IsLocalizable);
             restored.IsScopable.ShouldBe(attribute.IsScopable);
             SettingsState(restored.Settings).ShouldBe(SettingsState(attribute.Settings), attribute.Code.Value);
+        }
+    }
+
+    [Fact]
+    public void CategoryTreesRoundTrip()
+    {
+        var tree = _catalog.WebShop;
+        tree.MoveCategory(CategoryCode.Parse("summer"), null, 0).ShouldSucceed();
+
+        var restored = CategoryTree.Restore(tree.Id, tree.Code, tree.Categories);
+
+        restored.Id.ShouldBe(tree.Id);
+        restored.Code.ShouldBe(tree.Code);
+        restored.Categories.ShouldBe(tree.Categories);
+        foreach (var category in tree.Categories)
+        {
+            restored.Children(category.Id).ShouldBe(tree.Children(category.Id));
         }
     }
 
