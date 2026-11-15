@@ -1,4 +1,5 @@
 using Sortiment.Core.Attributes;
+using Sortiment.Core.Categories;
 using Sortiment.Core.Channels;
 using Sortiment.Core.Families;
 using Sortiment.Core.Measurements;
@@ -58,6 +59,12 @@ internal sealed class TShirtCatalog
         Accessories = Family.Create(FamilyCode.Parse("accessories")).Value;
         Accessories.AddAttribute(Name).ShouldSucceed();
         Accessories.AddAttribute(Warranty).ShouldSucceed();
+
+        WebShop = CategoryTree.Create(CategoryTreeCode.Parse("web_shop")).Value;
+        Clothing = WebShop.AddCategory(CategoryCode.Parse("clothing"), null).Value;
+        TShirtCategory = WebShop.AddCategory(CategoryCode.Parse("t_shirts"), Clothing.Code).Value;
+        LinenCategory = WebShop.AddCategory(CategoryCode.Parse("linen_t_shirts"), TShirtCategory.Code).Value;
+        Summer = WebShop.AddCategory(CategoryCode.Parse("summer"), null).Value;
     }
 
     public static Locale Swedish { get; } = Locale.Parse("sv-SE");
@@ -98,6 +105,20 @@ internal sealed class TShirtCatalog
     /// Gets the t-shirt family variant: color and size are the axes, and the GTIN and weight are set per variant.
     /// </summary>
     public FamilyVariant ByColorAndSize { get; }
+
+    /// <summary>
+    /// Gets the web shop category tree: <c>clothing</c> → <c>t_shirts</c> → <c>linen_t_shirts</c>, and <c>summer</c> at
+    /// the top level.
+    /// </summary>
+    public CategoryTree WebShop { get; }
+
+    public Category Clothing { get; }
+
+    public Category TShirtCategory { get; }
+
+    public Category LinenCategory { get; }
+
+    public Category Summer { get; }
 
     public IReadOnlyList<AttributeDefinition> AllAttributes => [Name, Description, Color, Size, Weight, Gtin, Warranty];
 

@@ -1,6 +1,6 @@
 # Sortiment.Core
 
-A flexible, typed product model for .NET: attributes, families, variants, localized and channel-scoped values, assets, validation and completeness.
+A flexible, typed product model for .NET: attributes, families, variants, categories, localized and channel-scoped values, assets, validation and completeness.
 
 `Sortiment.Core` has no dependencies and performs no I/O. It can be used on its own, without the rest of Sortiment.
 
@@ -13,6 +13,10 @@ Products that come in several colors, sizes or other variations are modeled with
 - A variant is an ordinary `Product` with a `ProductModelId`. It holds its axis values and the other variant attributes, and sees its model's values through `EffectiveValues`.
 
 Operations on a variant take a `VariantContext`: the variant's product model together with the `VariantSchema` of its family variant. See [ADR 0015](../../docs/adr/0015-variants.md).
+
+## Categories
+
+Categories organize products for presentation, independently of families. A `CategoryTree`, such as `web_shop` or `print_catalog`, holds its categories and enforces the hierarchy: every `Category` has one parent or is at the top level, a category cannot be moved into its own subtree, and the order of siblings is kept. A catalog can have several trees, because channels organize the same products differently. See [ADR 0016](../../docs/adr/0016-categories.md).
 
 ## Loading stored data
 
