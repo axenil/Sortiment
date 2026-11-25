@@ -1,4 +1,5 @@
 using Sortiment.Core.Attributes;
+using Sortiment.Core.Categories;
 using Sortiment.Core.Channels;
 using Sortiment.Core.Families;
 using Sortiment.Core.Values;
@@ -18,6 +19,7 @@ namespace Sortiment.Core.Products;
 public sealed class Product
 {
     private readonly ValueSet _values = new();
+    private readonly CategorySet _categories = new();
 
     private Product(ProductId id, Sku sku, FamilyId familyId, ProductModelId? productModelId)
     {
@@ -65,6 +67,12 @@ public sealed class Product
     public IReadOnlyList<ProductValue> Values => _values.Values;
 
     /// <summary>
+    /// Gets the categories the product is in, in the order they were added. A variant is also in its model's
+    /// categories; see <see cref="EffectiveCategories"/>.
+    /// </summary>
+    public IReadOnlyList<CategoryId> Categories => _categories.Categories;
+
+    /// <summary>
     /// Creates a new, enabled product without values.
     /// </summary>
     /// <param name="sku">The product's SKU.</param>
@@ -108,15 +116,19 @@ public sealed class Product
     /// <param name="isEnabled">Whether the product is enabled.</param>
     /// <param name="values">The product's values.</param>
     /// <param name="productModelId">The identity of the product model, if the product is a variant.</param>
+    /// <param name="categories">The IDs of the categories the product is in.</param>
     /// <returns>The product.</returns>
-    /// <exception cref="ArgumentException">There is more than one value for the same attribute and scope.</exception>
+    /// <exception cref="ArgumentException">
+    /// There is more than one value for the same attribute and scope, or a category is listed more than once.
+    /// </exception>
     public static Product Restore(
         ProductId id,
         Sku sku,
         FamilyId familyId,
         bool isEnabled,
         IEnumerable<ProductValue> values,
-        ProductModelId? productModelId = null)
+        ProductModelId? productModelId = null,
+        IEnumerable<CategoryId>? categories = null)
     {
         ArgumentNullException.ThrowIfNull(sku);
         ArgumentNullException.ThrowIfNull(values);
@@ -135,6 +147,10 @@ public sealed class Product
         }
 
         problems.ThrowIfAny($"Product '{sku}'", nameof(values));
+
+        var categoryProblems = new RestoreProblems();
+        product._categories.Restore(categories ?? [], categoryProblems);
+        categoryProblems.ThrowIfAny($"Product '{sku}'", nameof(categories));
         return product;
     }
 
@@ -213,6 +229,33 @@ public sealed class Product
 
         return _values.Remove(attribute, scope);
     }
+
+    /// <summary>
+    /// Puts the product in a category. Putting it in a category it is already in changes nothing.
+    /// </summary>
+    /// <param name="tree">The tree the category is in.</param>
+    /// <param name="category">The category's code.</param>
+    /// <returns>Success, or the error <c>product.category_not_found</c>.</returns>
+    public Result AddCategory(CategoryTree tree, CategoryCode category)
+    {
+        ArgumentNullException.ThrowIfNull(tree);
+        ArgumentNullException.ThrowIfNull(category);
+
+        if (tree.FindCategory(category) is not { } found)
+        {
+            return Result.Failure(ProductErrors.CategoryNotFound(this, tree, category));
+        }
+
+        _categories.Add(found.Id);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Takes the product out of a category, for example because the category was removed from its tree.
+    /// </summary>
+    /// <param name="category">The category's ID.</param>
+    /// <returns><see langword="true"/> if the product was in the category.</returns>
+    public bool RemoveCategory(CategoryId category) => _categories.Remove(category);
 
     /// <summary>
     /// Moves the product to another family. Values for attributes that the new family does not have are removed.
@@ -413,6 +456,19 @@ public sealed class Product
         ArgumentNullException.ThrowIfNull(scope);
 
         return _values.Get(attribute, scope) ?? model.GetValue(attribute, scope);
+    }
+
+    /// <summary>
+    /// Gets a variant's effective categories: its own categories together with its model's (ADR 0016).
+    /// </summary>
+    /// <param name="model">The variant's product model.</param>
+    /// <returns>The variant's categories followed by the model's categories that the variant is not in itself.</returns>
+    /// <exception cref="ArgumentException"><paramref name="model"/> is not the variant's own model.</exception>
+    public IReadOnlyList<CategoryId> EffectiveCategories(ProductModel model)
+    {
+        EnsureOwnModel(model);
+
+        return Categories.Union(model.Categories).ToList().AsReadOnly();
     }
 
     /// <summary>

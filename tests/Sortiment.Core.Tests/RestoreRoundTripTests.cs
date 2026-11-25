@@ -131,13 +131,21 @@ public sealed class RestoreRoundTripTests
             ValueScope.For(English, _catalog.Ecommerce.Id),
             new TextValue("A linen shirt.")).ShouldSucceed();
         model.Values.Count.ShouldBe(2);
+        model.AddCategory(_catalog.WebShop, CategoryCode.Parse("linen_t_shirts")).ShouldSucceed();
+        model.AddCategory(_catalog.WebShop, CategoryCode.Parse("summer")).ShouldSucceed();
 
-        var restored = ProductModel.Restore(model.Id, model.Code, model.FamilyVariantId, model.Values);
+        var restored = ProductModel.Restore(
+            model.Id,
+            model.Code,
+            model.FamilyVariantId,
+            model.Values,
+            model.Categories);
 
         restored.Id.ShouldBe(model.Id);
         restored.Code.ShouldBe(model.Code);
         restored.FamilyVariantId.ShouldBe(model.FamilyVariantId);
         restored.Values.ShouldBe(model.Values, ignoreOrder: true);
+        restored.Categories.ShouldBe(model.Categories);
     }
 
     [Fact]
@@ -152,6 +160,7 @@ public sealed class RestoreRoundTripTests
             .ShouldSucceed();
         variant.SetValue(context, AttributeCode.Parse("size"), ValueScope.Global, new SingleSelectValue(_catalog.Medium.Id))
             .ShouldSucceed();
+        variant.AddCategory(_catalog.WebShop, CategoryCode.Parse("summer")).ShouldSucceed();
 
         var restored = Product.Restore(
             variant.Id,
@@ -159,9 +168,11 @@ public sealed class RestoreRoundTripTests
             variant.FamilyId,
             variant.IsEnabled,
             variant.Values,
-            variant.ProductModelId);
+            variant.ProductModelId,
+            variant.Categories);
 
         restored.ProductModelId.ShouldBe(variant.ProductModelId);
+        restored.Categories.ShouldBe(variant.Categories);
         restored.Values.ShouldBe(variant.Values, ignoreOrder: true);
         restored.AxisCombination(context).ShouldBe(variant.AxisCombination(context));
     }
@@ -183,16 +194,25 @@ public sealed class RestoreRoundTripTests
             AttributeCode.Parse("weight"),
             ValueScope.Global,
             new MeasurementValue(180m, MeasurementFamilies.Weight.UnitId("g"))).ShouldSucceed();
+        product.AddCategory(_catalog.WebShop, CategoryCode.Parse("linen_t_shirts")).ShouldSucceed();
+        product.AddCategory(_catalog.WebShop, CategoryCode.Parse("clothing")).ShouldSucceed();
         product.Disable();
         product.Values.Count.ShouldBe(4);
 
-        var restored = Product.Restore(product.Id, product.Sku, product.FamilyId, product.IsEnabled, product.Values);
+        var restored = Product.Restore(
+            product.Id,
+            product.Sku,
+            product.FamilyId,
+            product.IsEnabled,
+            product.Values,
+            categories: product.Categories);
 
         restored.Id.ShouldBe(product.Id);
         restored.Sku.Value.ShouldBe(product.Sku.Value);
         restored.FamilyId.ShouldBe(product.FamilyId);
         restored.IsEnabled.ShouldBe(product.IsEnabled);
         restored.Values.ShouldBe(product.Values, ignoreOrder: true);
+        restored.Categories.ShouldBe(product.Categories);
     }
 
     [Fact]

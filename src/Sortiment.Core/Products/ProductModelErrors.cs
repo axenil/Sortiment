@@ -1,4 +1,5 @@
 using Sortiment.Core.Attributes;
+using Sortiment.Core.Categories;
 using Sortiment.Core.Families;
 
 namespace Sortiment.Core.Products;
@@ -20,6 +21,14 @@ internal static class ProductModelErrors
     public static ResultError AttributeNotOnModel(ProductModel model, FamilyVariant familyVariant, AttributeId attribute) =>
         NotOnModel(model, familyVariant, $"with ID {attribute}")
             .WithContext(ErrorContextKeys.AttributeId, attribute.ToString());
+
+    public static ResultError CategoryNotFound(ProductModel model, CategoryTree tree, CategoryCode category) =>
+        new ResultError(
+                "product_model.category_not_found",
+                $"Category tree '{tree.Code}' has no category '{category}', so product model '{model.Code}' cannot be put in it.")
+            .WithContext(ErrorContextKeys.ProductModel, model.Code.Value)
+            .WithContext(ErrorContextKeys.CategoryTree, tree.Code.Value)
+            .WithContext(ErrorContextKeys.Category, category.Value);
 
     private static ResultError NotInFamily(ProductModel model, Family family, string attributeDescription) =>
         new ResultError(
