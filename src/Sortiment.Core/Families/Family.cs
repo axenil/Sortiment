@@ -115,6 +115,12 @@ public sealed class Family
     public bool HasAttribute(AttributeId attribute) => _attributes.Contains(attribute);
 
     /// <summary>
+    /// Gets a number that changes whenever an attribute is added, so a <see cref="FamilySchema"/> can tell cheaply
+    /// whether the family may have attributes it has no definition for. It is not stored.
+    /// </summary>
+    internal int AttributesVersion { get; private set; }
+
+    /// <summary>
     /// Adds an attribute to the end of the family's attributes.
     /// </summary>
     /// <param name="attribute">The attribute to add.</param>
@@ -129,6 +135,7 @@ public sealed class Family
         }
 
         _attributes.Add(attribute.Id);
+        AttributesVersion++;
         return Result.Success();
     }
 

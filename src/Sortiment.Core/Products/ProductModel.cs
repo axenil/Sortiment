@@ -13,6 +13,8 @@ namespace Sortiment.Core.Products;
 /// A product model has values only for the model attributes of its family variant. Operations that need attribute
 /// definitions take the <see cref="VariantSchema"/> of its family variant, resolved by the caller. Code uniqueness is
 /// enforced by whoever stores product models.
+/// Operations that take a schema throw <see cref="InvalidOperationException"/> if its family schema is no longer
+/// <see cref="FamilySchema.IsCurrent">current</see> (ADR 0017).
 /// </remarks>
 public sealed class ProductModel
 {
@@ -245,6 +247,8 @@ public sealed class ProductModel
                 "The schema must be the schema of the product model's own family variant.",
                 nameof(schema));
         }
+
+        schema.FamilySchema.EnsureCurrent();
     }
 
     private ResultError AddModelContext(ResultError error) =>

@@ -4,6 +4,10 @@ A flexible, typed product model for .NET: attributes, families, variants, catego
 
 `Sortiment.Core` has no dependencies and performs no I/O. It can be used on its own, without the rest of Sortiment.
 
+## Family schemas
+
+Product operations take a `FamilySchema`: a family together with the definitions of its attributes, resolved by the caller and reused for every product in a unit of work. If an attribute is added to the family after the schema was created, the schema is no longer current (`IsCurrent`), and operations that use it throw `InvalidOperationException` rather than leave the new attribute out. Create a new schema after changing a family. See [ADR 0017](../../docs/adr/0017-stale-family-schemas.md).
+
 ## Variants
 
 Products that come in several colors, sizes or other variations are modeled with three types:
