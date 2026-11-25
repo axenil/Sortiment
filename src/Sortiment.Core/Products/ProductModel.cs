@@ -1,4 +1,5 @@
 using Sortiment.Core.Attributes;
+using Sortiment.Core.Categories;
 using Sortiment.Core.Families;
 using Sortiment.Core.Values;
 
@@ -16,6 +17,7 @@ namespace Sortiment.Core.Products;
 public sealed class ProductModel
 {
     private readonly ValueSet _values = new();
+    private readonly CategorySet _categories = new();
 
     private ProductModel(ProductModelId id, ProductModelCode code, FamilyVariantId familyVariantId)
     {
@@ -46,6 +48,11 @@ public sealed class ProductModel
     public IReadOnlyList<ProductValue> Values => _values.Values;
 
     /// <summary>
+    /// Gets the categories the model is in, in the order they were added. Its variants are in them too.
+    /// </summary>
+    public IReadOnlyList<CategoryId> Categories => _categories.Categories;
+
+    /// <summary>
     /// Creates a new product model without values.
     /// </summary>
     /// <param name="code">The product model's code.</param>
@@ -68,13 +75,17 @@ public sealed class ProductModel
     /// <param name="code">The product model's code.</param>
     /// <param name="familyVariantId">The identity of its family variant.</param>
     /// <param name="values">The model's values.</param>
+    /// <param name="categories">The IDs of the categories the model is in.</param>
     /// <returns>The product model.</returns>
-    /// <exception cref="ArgumentException">There is more than one value for the same attribute and scope.</exception>
+    /// <exception cref="ArgumentException">
+    /// There is more than one value for the same attribute and scope, or a category is listed more than once.
+    /// </exception>
     public static ProductModel Restore(
         ProductModelId id,
         ProductModelCode code,
         FamilyVariantId familyVariantId,
-        IEnumerable<ProductValue> values)
+        IEnumerable<ProductValue> values,
+        IEnumerable<CategoryId>? categories = null)
     {
         ArgumentNullException.ThrowIfNull(code);
         ArgumentNullException.ThrowIfNull(values);
@@ -93,6 +104,10 @@ public sealed class ProductModel
         }
 
         problems.ThrowIfAny($"Product model '{code}'", nameof(values));
+
+        var categoryProblems = new RestoreProblems();
+        model._categories.Restore(categories ?? [], categoryProblems);
+        categoryProblems.ThrowIfAny($"Product model '{code}'", nameof(categories));
         return model;
     }
 
@@ -155,6 +170,33 @@ public sealed class ProductModel
 
         return _values.Remove(attribute, scope);
     }
+
+    /// <summary>
+    /// Puts the model in a category. Putting it in a category it is already in changes nothing.
+    /// </summary>
+    /// <param name="tree">The tree the category is in.</param>
+    /// <param name="category">The category's code.</param>
+    /// <returns>Success, or the error <c>product_model.category_not_found</c>.</returns>
+    public Result AddCategory(CategoryTree tree, CategoryCode category)
+    {
+        ArgumentNullException.ThrowIfNull(tree);
+        ArgumentNullException.ThrowIfNull(category);
+
+        if (tree.FindCategory(category) is not { } found)
+        {
+            return Result.Failure(ProductModelErrors.CategoryNotFound(this, tree, category));
+        }
+
+        _categories.Add(found.Id);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Takes the model out of a category, for example because the category was removed from its tree.
+    /// </summary>
+    /// <param name="category">The category's ID.</param>
+    /// <returns><see langword="true"/> if the model was in the category.</returns>
+    public bool RemoveCategory(CategoryId category) => _categories.Remove(category);
 
     /// <summary>
     /// Validates every value of the model against the current schema. This reports values that break a constraint

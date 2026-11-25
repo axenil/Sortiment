@@ -18,6 +18,8 @@ Operations on a variant take a `VariantContext`: the variant's product model tog
 
 Categories organize products for presentation, independently of families. A `CategoryTree`, such as `web_shop` or `print_catalog`, holds its categories and enforces the hierarchy: every `Category` has one parent or is at the top level, a category cannot be moved into its own subtree, and the order of siblings is kept. A catalog can have several trees, because channels organize the same products differently. See [ADR 0016](../../docs/adr/0016-categories.md).
 
+Products and product models are put in categories with `AddCategory`, which takes the tree and the category's code. A product can be in any number of categories, in any trees and at any level. A variant is also in its model's categories, which `EffectiveCategories` combines with its own. Categories do not affect validation or completeness. When a category is removed from its tree, remove it from its products and product models with `RemoveCategory`.
+
 ## Loading stored data
 
 New domain objects are created with `Create`, which assigns a new ID. Objects loaded from storage are rebuilt with `Restore`, which takes the stored ID and state. For example, `Product.Restore`, `Family.Restore` and `AttributeDefinition.Restore`. `Restore` checks that the data is structurally sound but does not revalidate it against constraints that may have changed since it was saved. Use `Product.Validate` for that.

@@ -1,4 +1,5 @@
 using Sortiment.Core.Attributes;
+using Sortiment.Core.Categories;
 using Sortiment.Core.Families;
 using Sortiment.Core.Products;
 using Sortiment.Core.Tests.Fixtures;
@@ -111,6 +112,7 @@ public sealed class VariantProductTests
         Should.Throw<ArgumentException>(() => _variant.Validate(otherContext));
         Should.Throw<ArgumentException>(() => _variant.AxisCombination(otherContext));
         Should.Throw<ArgumentException>(() => _variant.EffectiveValues(otherModel));
+        Should.Throw<ArgumentException>(() => _variant.EffectiveCategories(otherModel));
     }
 
     [Fact]
@@ -168,6 +170,19 @@ public sealed class VariantProductTests
             .ShouldBe(new SingleSelectValue(_catalog.Red.Id));
         _variant.GetEffectiveValue(Model, _catalog.Name.Id, ValueScope.ForLocale(English)).ShouldBeNull();
         _variant.GetValue(_catalog.Name.Id, ValueScope.ForLocale(Swedish)).ShouldBeNull();
+    }
+
+    [Fact]
+    public void EffectiveCategoriesCombineTheVariantAndItsModel()
+    {
+        Model.AddCategory(_catalog.WebShop, CategoryCode.Parse("linen_t_shirts")).ShouldSucceed();
+        Model.AddCategory(_catalog.WebShop, CategoryCode.Parse("summer")).ShouldSucceed();
+        _variant.AddCategory(_catalog.WebShop, CategoryCode.Parse("clothing")).ShouldSucceed();
+        _variant.AddCategory(_catalog.WebShop, CategoryCode.Parse("summer")).ShouldSucceed();
+
+        _variant.EffectiveCategories(Model)
+            .ShouldBe([_catalog.Clothing.Id, _catalog.Summer.Id, _catalog.LinenCategory.Id]);
+        _variant.Categories.ShouldBe([_catalog.Clothing.Id, _catalog.Summer.Id]);
     }
 
     [Fact]
