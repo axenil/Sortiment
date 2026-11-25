@@ -111,7 +111,7 @@ public sealed class VariantProductTests
             _variant.SetValue(otherContext, Code("gtin"), ValueScope.Global, new TextValue("07350053850019")));
         Should.Throw<ArgumentException>(() => _variant.Validate(otherContext));
         Should.Throw<ArgumentException>(() => _variant.AxisCombination(otherContext));
-        Should.Throw<ArgumentException>(() => _variant.EffectiveValues(otherModel));
+        Should.Throw<ArgumentException>(() => _variant.EffectiveValues(otherContext));
         Should.Throw<ArgumentException>(() => _variant.EffectiveCategories(otherModel));
     }
 
@@ -162,14 +162,77 @@ public sealed class VariantProductTests
         Model.SetValue(_context.Schema, Code("name"), ValueScope.ForLocale(Swedish), new TextValue("Linneskjorta"))
             .ShouldSucceed();
 
-        _variant.EffectiveValues(Model).Select(value => value.Attribute)
+        _variant.EffectiveValues(_context).Select(value => value.Attribute)
             .ShouldBe([_catalog.Color.Id, _catalog.Size.Id, _catalog.Name.Id], ignoreOrder: true);
-        _variant.GetEffectiveValue(Model, _catalog.Name.Id, ValueScope.ForLocale(Swedish))
+        _variant.GetEffectiveValue(_context, _catalog.Name.Id, ValueScope.ForLocale(Swedish))
             .ShouldBe(new TextValue("Linneskjorta"));
-        _variant.GetEffectiveValue(Model, _catalog.Color.Id, ValueScope.Global)
+        _variant.GetEffectiveValue(_context, _catalog.Color.Id, ValueScope.Global)
             .ShouldBe(new SingleSelectValue(_catalog.Red.Id));
-        _variant.GetEffectiveValue(Model, _catalog.Name.Id, ValueScope.ForLocale(English)).ShouldBeNull();
+        _variant.GetEffectiveValue(_context, _catalog.Name.Id, ValueScope.ForLocale(English)).ShouldBeNull();
         _variant.GetValue(_catalog.Name.Id, ValueScope.ForLocale(Swedish)).ShouldBeNull();
+    }
+
+    [Fact]
+    public void AModelValueOfAnAttributeThatBecameAVariantAttributeIsNotEffective()
+    {
+        SetAxes();
+        Model.SetValue(_context.Schema, Code("name"), ValueScope.ForLocale(Swedish), new TextValue("Linneskjorta"))
+            .ShouldSucceed();
+
+        _catalog.ByColorAndSize.AddVariantAttribute(_context.Schema.FamilySchema, Code("name")).ShouldSucceed();
+
+        _variant.GetEffectiveValue(_context, _catalog.Name.Id, ValueScope.ForLocale(Swedish)).ShouldBeNull();
+        _variant.EffectiveValues(_context).Select(value => value.Attribute)
+            .ShouldBe([_catalog.Color.Id, _catalog.Size.Id], ignoreOrder: true);
+        _variant.CalculateCompleteness(_context, _catalog.Ecommerce).ForLocale(Swedish)!.MissingAttributes
+            .ShouldContain(_catalog.Name.Code);
+    }
+
+    [Fact]
+    public void AVariantValueOfAnAttributeThatBecameAModelAttributeIsNotEffective()
+    {
+        SetAxes();
+        _variant.SetValue(_context, Code("gtin"), ValueScope.Global, new TextValue("07350053850019")).ShouldSucceed();
+
+        _catalog.ByColorAndSize.RemoveVariantAttribute(_catalog.Gtin.Id).ShouldSucceed();
+        Model.SetValue(_context.Schema, Code("gtin"), ValueScope.Global, new TextValue("07350053850026")).ShouldSucceed();
+
+        _variant.GetEffectiveValue(_context, _catalog.Gtin.Id, ValueScope.Global)
+            .ShouldBe(new TextValue("07350053850026"));
+        _variant.EffectiveValues(_context).Where(value => value.Attribute == _catalog.Gtin.Id)
+            .ShouldHaveSingleItem().Value.ShouldBe(new TextValue("07350053850026"));
+    }
+
+    [Fact]
+    public void ValuesOfAttributesRemovedFromTheFamilyAreNotEffective()
+    {
+        SetAxes();
+        Model.SetValue(_context.Schema, Code("name"), ValueScope.ForLocale(Swedish), new TextValue("Linneskjorta"))
+            .ShouldSucceed();
+
+        _catalog.TShirts.RemoveAttribute(_catalog.Name.Id).ShouldSucceed();
+
+        _variant.GetEffectiveValue(_context, _catalog.Name.Id, ValueScope.ForLocale(Swedish)).ShouldBeNull();
+        _variant.EffectiveValues(_context).ShouldNotContain(value => value.Attribute == _catalog.Name.Id);
+    }
+
+    [Fact]
+    public void AVariantIsCompleteWhenEachLevelHasItsValues()
+    {
+        SetAxes();
+        foreach (var locale in new[] { Swedish, English })
+        {
+            Model.SetValue(_context.Schema, Code("name"), ValueScope.ForLocale(locale), new TextValue("Linneskjorta"))
+                .ShouldSucceed();
+            Model.SetValue(
+                    _context.Schema,
+                    Code("description"),
+                    ValueScope.For(locale, _catalog.Ecommerce.Id),
+                    new TextValue("A linen shirt."))
+                .ShouldSucceed();
+        }
+
+        _variant.CalculateCompleteness(_context, _catalog.Ecommerce).IsComplete.ShouldBeTrue();
     }
 
     [Fact]
