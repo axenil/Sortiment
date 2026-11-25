@@ -15,6 +15,8 @@ namespace Sortiment.Core.Products;
 /// the caller (ADR 0010). Operations on a variant take a <see cref="VariantContext"/> instead, because a variant has values
 /// only for variant attributes and shares the rest with its model. SKU uniqueness, and the uniqueness of each variant's
 /// <see cref="AxisCombination"/> within its model, are enforced by whoever stores products.
+/// Operations that take a schema or context throw <see cref="InvalidOperationException"/> if the family schema is no
+/// longer <see cref="FamilySchema.IsCurrent">current</see> (ADR 0017).
 /// </remarks>
 public sealed class Product
 {
@@ -274,6 +276,8 @@ public sealed class Product
                 $"Product '{Sku}' is a variant, so its family is the family of its product model and cannot be changed.");
         }
 
+        schema.EnsureCurrent();
+
         var removed = Values.Where(value => schema.FindAttribute(value.Attribute) is null).ToList();
         foreach (var value in removed)
         {
@@ -511,6 +515,8 @@ public sealed class Product
                 $"Product '{Sku}' is a variant. Pass a {nameof(VariantContext)} instead of a family schema.",
                 nameof(schema));
         }
+
+        schema.EnsureCurrent();
     }
 
     private void EnsureOwnModel(VariantContext context)
@@ -520,6 +526,8 @@ public sealed class Product
         {
             throw new ArgumentException("The context must hold the product's own product model.", nameof(context));
         }
+
+        context.Schema.FamilySchema.EnsureCurrent();
     }
 
     private void EnsureOwnModel(ProductModel model)

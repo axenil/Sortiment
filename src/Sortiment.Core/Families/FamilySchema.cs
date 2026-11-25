@@ -10,19 +10,23 @@ namespace Sortiment.Core.Families;
 /// </summary>
 /// <remarks>
 /// A schema is meant to be created for one unit of work, such as a request or an import, and reused for every product
-/// in it. It always reflects attributes removed from the family since it was created, but attributes added since then
-/// are only included in a new schema.
+/// in it. It reads the family's attributes and requirements from the family itself, so attributes removed from the
+/// family since the schema was created are left out. An attribute added to the family since then has no definition in
+/// the schema, so the schema is no longer <see cref="IsCurrent">current</see> and refuses to answer: its members throw
+/// <see cref="InvalidOperationException"/> rather than leave the attribute out (ADR 0017). Create a new schema instead.
 /// </remarks>
 public sealed class FamilySchema
 {
     private readonly Dictionary<AttributeId, AttributeDefinition> _attributesById;
     private readonly Dictionary<AttributeCode, AttributeDefinition> _attributesByCode;
+    private int _checkedAttributesVersion;
 
     private FamilySchema(Family family, AttributeDefinition[] attributes)
     {
         Family = family;
         _attributesById = attributes.ToDictionary(attribute => attribute.Id);
         _attributesByCode = attributes.ToDictionary(attribute => attribute.Code);
+        _checkedAttributesVersion = family.AttributesVersion;
     }
 
     /// <summary>
@@ -31,10 +35,41 @@ public sealed class FamilySchema
     public Family Family { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the schema has a definition for every attribute of the family. It becomes
+    /// <see langword="false"/> when an attribute is added to the family after the schema was created; the schema's
+    /// other members then throw <see cref="InvalidOperationException"/>.
+    /// </summary>
+    public bool IsCurrent
+    {
+        get
+        {
+            if (Family.AttributesVersion == _checkedAttributesVersion)
+            {
+                return true;
+            }
+
+            if (Family.Attributes.Any(id => !_attributesById.ContainsKey(id)))
+            {
+                return false;
+            }
+
+            _checkedAttributesVersion = Family.AttributesVersion;
+            return true;
+        }
+    }
+
+    /// <summary>
     /// Gets the definitions of the family's attributes, in the family's attribute order.
     /// </summary>
-    public ReadOnlyCollection<AttributeDefinition> Attributes =>
-        Family.Attributes.Where(_attributesById.ContainsKey).Select(id => _attributesById[id]).ToList().AsReadOnly();
+    /// <exception cref="InvalidOperationException">The schema is not <see cref="IsCurrent">current</see>.</exception>
+    public ReadOnlyCollection<AttributeDefinition> Attributes
+    {
+        get
+        {
+            EnsureCurrent();
+            return Family.Attributes.Select(id => _attributesById[id]).ToList().AsReadOnly();
+        }
+    }
 
     /// <summary>
     /// Resolves a family's attributes.
@@ -72,38 +107,59 @@ public sealed class FamilySchema
     /// <summary>
     /// Gets the definitions of the attributes the family requires for a channel, in the family's attribute order.
     /// </summary>
-    /// <remarks>
-    /// Like <see cref="Attributes"/>, this leaves out attributes that were added to the family after the schema was
-    /// created, even if the channel requires them, because the schema has no definition for them.
-    /// </remarks>
     /// <param name="channel">The channel.</param>
     /// <returns>The required attributes. Empty if the channel has no requirements.</returns>
-    public IReadOnlyList<AttributeDefinition> RequiredAttributes(ChannelId channel) =>
-        Family.RequiredAttributes(channel)
-            .Where(_attributesById.ContainsKey)
-            .Select(id => _attributesById[id])
-            .ToList()
-            .AsReadOnly();
+    /// <exception cref="InvalidOperationException">The schema is not <see cref="IsCurrent">current</see>.</exception>
+    public IReadOnlyList<AttributeDefinition> RequiredAttributes(ChannelId channel)
+    {
+        EnsureCurrent();
+        return Family.RequiredAttributes(channel).Select(id => _attributesById[id]).ToList().AsReadOnly();
+    }
 
     /// <summary>
     /// Finds one of the family's attributes by ID.
     /// </summary>
     /// <param name="id">The attribute's ID.</param>
     /// <returns>The attribute, or <see langword="null"/> if it is not in the family.</returns>
-    public AttributeDefinition? FindAttribute(AttributeId id) =>
-        Family.HasAttribute(id) ? _attributesById.GetValueOrDefault(id) : null;
+    /// <exception cref="InvalidOperationException">The schema is not <see cref="IsCurrent">current</see>.</exception>
+    public AttributeDefinition? FindAttribute(AttributeId id)
+    {
+        EnsureCurrent();
+        return Family.HasAttribute(id) ? _attributesById[id] : null;
+    }
 
     /// <summary>
     /// Finds one of the family's attributes by code.
     /// </summary>
     /// <param name="code">The attribute's code.</param>
     /// <returns>The attribute, or <see langword="null"/> if it is not in the family.</returns>
+    /// <exception cref="InvalidOperationException">The schema is not <see cref="IsCurrent">current</see>.</exception>
     public AttributeDefinition? FindAttribute(AttributeCode code)
     {
         ArgumentNullException.ThrowIfNull(code);
+        EnsureCurrent();
 
         return _attributesByCode.TryGetValue(code, out var attribute) && Family.HasAttribute(attribute.Id)
             ? attribute
             : null;
+    }
+
+    /// <summary>
+    /// Throws unless the schema is current. Product, product model and variant operations call this first, so they
+    /// refuse a stale schema whether or not they would have looked up an attribute.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The schema is not current.</exception>
+    internal void EnsureCurrent()
+    {
+        if (IsCurrent)
+        {
+            return;
+        }
+
+        var missing = Family.Attributes.Where(id => !_attributesById.ContainsKey(id));
+        throw new InvalidOperationException(
+            $"The schema of family '{Family.Code}' is out of date: it has no definition for the attributes with IDs " +
+            $"{string.Join(", ", missing)}, which were added to the family after the schema was created. " +
+            "Create a new schema.");
     }
 }

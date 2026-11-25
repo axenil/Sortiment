@@ -62,16 +62,44 @@ public sealed class FamilySchemaTests
     }
 
     [Fact]
-    public void AnAttributeAddedToTheFamilyNeedsANewSchema()
+    public void AnAttributeAddedToTheFamilyMakesTheSchemaOutOfDate()
+    {
+        var schema = FamilySchema.Create(_family, [_name, _description]).Value;
+        schema.IsCurrent.ShouldBeTrue();
+
+        _family.AddAttribute(_material).ShouldSucceed();
+
+        schema.IsCurrent.ShouldBeFalse();
+        var exception = Should.Throw<InvalidOperationException>(() => schema.Attributes);
+        exception.Message.ShouldContain("'t_shirts' is out of date");
+        exception.Message.ShouldContain(_material.Id.ToString());
+        Should.Throw<InvalidOperationException>(() => schema.FindAttribute(_material.Id));
+        Should.Throw<InvalidOperationException>(() => schema.FindAttribute(_name.Id));
+        Should.Throw<InvalidOperationException>(() => schema.FindAttribute(AttributeCode.Parse("name")));
+        Should.Throw<InvalidOperationException>(() => schema.RequiredAttributes(ChannelId.New()));
+    }
+
+    [Fact]
+    public void ANewSchemaIncludesTheAddedAttribute()
+    {
+        _family.AddAttribute(_material).ShouldSucceed();
+
+        var schema = FamilySchema.Create(_family, [_name, _description, _material]).Value;
+
+        schema.IsCurrent.ShouldBeTrue();
+        schema.FindAttribute(_material.Id).ShouldBeSameAs(_material);
+    }
+
+    [Fact]
+    public void AnAttributeAddedAndRemovedAgainLeavesTheSchemaCurrent()
     {
         var schema = FamilySchema.Create(_family, [_name, _description]).Value;
 
         _family.AddAttribute(_material).ShouldSucceed();
+        _family.RemoveAttribute(_material.Id).ShouldSucceed();
 
+        schema.IsCurrent.ShouldBeTrue();
         schema.Attributes.ShouldBe([_name, _description]);
-        schema.FindAttribute(_material.Id).ShouldBeNull();
-        FamilySchema.Create(_family, [_name, _description, _material]).Value.FindAttribute(_material.Id)
-            .ShouldBeSameAs(_material);
     }
 
     [Fact]
@@ -91,7 +119,7 @@ public sealed class FamilySchemaTests
     }
 
     [Fact]
-    public void RequiredAttributesLeaveOutAttributesAddedAfterTheSchemaWasCreated()
+    public void RequiredAttributesRefuseToLeaveOutAnAttributeAddedAfterTheSchemaWasCreated()
     {
         var ecommerce = ChannelId.New();
         _family.RequireAttribute(_name, ecommerce).ShouldSucceed();
@@ -100,7 +128,9 @@ public sealed class FamilySchemaTests
         _family.AddAttribute(_material).ShouldSucceed();
         _family.RequireAttribute(_material, ecommerce).ShouldSucceed();
 
-        schema.RequiredAttributes(ecommerce).ShouldBe([_name]);
+        Should.Throw<InvalidOperationException>(() => schema.RequiredAttributes(ecommerce));
+        FamilySchema.Create(_family, [_name, _description, _material]).Value.RequiredAttributes(ecommerce)
+            .ShouldBe([_name, _material]);
     }
 
     private static AttributeDefinition Attribute(string code) =>
