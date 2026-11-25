@@ -416,7 +416,8 @@ public sealed class Product
     }
 
     /// <summary>
-    /// Calculates how complete a variant is for a channel, counting both its own values and its model's values.
+    /// Calculates how complete a variant is for a channel from its effective values: its own values of variant
+    /// attributes and its model's values of model attributes (ADR 0018). Values on the wrong level do not count.
     /// </summary>
     /// <param name="context">The variant's product model and the schema of its family variant.</param>
     /// <param name="channel">The channel.</param>
@@ -430,36 +431,47 @@ public sealed class Product
         return CompletenessCalculator.Calculate(
             context.Schema.FamilySchema.RequiredAttributes(channel.Id),
             channel,
-            (attribute, scope) => HasValue(attribute, scope) || context.Model.HasValue(attribute, scope));
+            (attribute, scope) => EffectiveValue(context, attribute, scope) is not null);
     }
 
     /// <summary>
-    /// Gets a variant's effective values: its own values together with its model's values (ADR 0015).
+    /// Gets a variant's effective values: its own values of variant attributes together with its model's values of
+    /// model attributes (ADR 0018). Values on the wrong level for the current family variant, and values of attributes
+    /// no longer in the family, are left out; <see cref="Validate(VariantContext)"/> and
+    /// <see cref="ProductModel.Validate"/> report them.
     /// </summary>
-    /// <param name="model">The variant's product model.</param>
-    /// <returns>The variant's values followed by the model's values.</returns>
-    /// <exception cref="ArgumentException"><paramref name="model"/> is not the variant's own model.</exception>
-    public IReadOnlyList<ProductValue> EffectiveValues(ProductModel model)
+    /// <param name="context">The variant's product model and the schema of its family variant.</param>
+    /// <returns>The variant's values followed by the model's values, with at most one value per attribute and scope.</returns>
+    /// <exception cref="ArgumentException"><paramref name="context"/> does not hold the variant's own model.</exception>
+    public IReadOnlyList<ProductValue> EffectiveValues(VariantContext context)
     {
-        EnsureOwnModel(model);
+        EnsureOwnModel(context);
 
-        return Values.Concat(model.Values).ToList().AsReadOnly();
+        var schema = context.Schema;
+        return Values.Where(value => schema.IsVariantAttribute(value.Attribute))
+            .Concat(context.Model.Values.Where(value => schema.IsModelAttribute(value.Attribute)))
+            .ToList()
+            .AsReadOnly();
     }
 
     /// <summary>
-    /// Gets the effective value of an attribute in a scope: the variant's own value, or else its model's value.
+    /// Gets the effective value of an attribute in a scope: the variant's own value for a variant attribute, or its
+    /// model's value for a model attribute (ADR 0018).
     /// </summary>
-    /// <param name="model">The variant's product model.</param>
+    /// <param name="context">The variant's product model and the schema of its family variant.</param>
     /// <param name="attribute">The attribute's ID.</param>
     /// <param name="scope">The scope.</param>
-    /// <returns>The value, or <see langword="null"/> if neither the variant nor its model has a value there.</returns>
-    /// <exception cref="ArgumentException"><paramref name="model"/> is not the variant's own model.</exception>
-    public AttributeValue? GetEffectiveValue(ProductModel model, AttributeId attribute, ValueScope scope)
+    /// <returns>
+    /// The value, or <see langword="null"/> if the level the attribute belongs to has no value there, or the attribute
+    /// is not in the family.
+    /// </returns>
+    /// <exception cref="ArgumentException"><paramref name="context"/> does not hold the variant's own model.</exception>
+    public AttributeValue? GetEffectiveValue(VariantContext context, AttributeId attribute, ValueScope scope)
     {
-        EnsureOwnModel(model);
+        EnsureOwnModel(context);
         ArgumentNullException.ThrowIfNull(scope);
 
-        return _values.Get(attribute, scope) ?? model.GetValue(attribute, scope);
+        return EffectiveValue(context, attribute, scope);
     }
 
     /// <summary>
@@ -500,6 +512,16 @@ public sealed class Product
     }
 
     private bool HasValue(AttributeId attribute, ValueScope scope) => _values.Has(attribute, scope);
+
+    private AttributeValue? EffectiveValue(VariantContext context, AttributeId attribute, ValueScope scope)
+    {
+        if (context.Schema.IsVariantAttribute(attribute))
+        {
+            return _values.Get(attribute, scope);
+        }
+
+        return context.Schema.IsModelAttribute(attribute) ? context.Model.GetValue(attribute, scope) : null;
+    }
 
     private void EnsureOwnFamily(FamilySchema schema)
     {
